@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Heart, ArrowRight } from "lucide-react"
+import { FrameCard } from "@/components/gallery/frame-card"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
 interface LikedContentProps {
@@ -23,47 +24,19 @@ export function LikedContent({ likedFrames }: LikedContentProps) {
       </div>
 
       {likedFrames && likedFrames.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {likedFrames.map((like) => {
-            const frame = like.frame as {
-              id: string
-              name: string
-              thumbnail_url: string | null
-              image_url: string
-              category: { name: string } | null
-            } | null
-
+            const frame = like.frame
             if (!frame) return null
 
+            const mappedFrame = {
+              ...frame,
+              is_liked: true,
+              likes_count: frame.like_count || 0
+            }
+
             return (
-              <Card key={like.id} className="overflow-hidden group">
-                <div className="aspect-square bg-muted relative">
-                  {frame.thumbnail_url || frame.image_url ? (
-                    <img
-                      src={frame.thumbnail_url || frame.image_url}
-                      alt={frame.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <Heart className="w-12 h-12 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <Link href={`/editor?frame=${frame.id}`}>
-                      <Button size="sm">{t("liked.useFrame")}</Button>
-                    </Link>
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold truncate">{frame.name}</h3>
-                  {frame.category && (
-                    <p className="text-sm text-muted-foreground">
-                      {frame.category.name}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              <FrameCard key={like.id} frame={mappedFrame} />
             )
           })}
         </div>

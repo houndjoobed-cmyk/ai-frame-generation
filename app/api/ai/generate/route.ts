@@ -23,30 +23,61 @@ export async function POST(req: Request) {
 
     const supabase = createAdminClient()
 
-    // 1. Verify User Credit Balance
-    const { data: credits, error: creditsError } = await supabase
-      .from("ai_credits")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .maybeSingle()
+    // 1. Atomically verify and deduct user credit (prevents race conditions)
+    // First, try to atomically increment used_credits only if remaining > 0
+    const { data: creditResult, error: creditError } = await supabase
+      .rpc("deduct_ai_credit", { p_user_id: session.user.id })
 
-    if (creditsError) {
-      console.error("Database error fetching user credits:", creditsError)
-      return NextResponse.json(
-        { success: false, error: "Erreur de base de données." },
-        { status: 500 }
-      )
-    }
+    // Fallback if RPC doesn't exist yet: use conditional update
+    let remaining = 0
+    if (creditError) {
+      // Fallback: conditional update that only succeeds if credits remain
+      const { data: credits } = await supabase
+        .from("ai_credits")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle()
 
-    const totalCredits = credits?.total_credits ?? 5
-    const usedCredits = credits?.used_credits ?? 0
-    const remaining = totalCredits - usedCredits
+      const totalCredits = credits?.total_credits ?? 5
+      const usedCredits = credits?.used_credits ?? 0
+      remaining = totalCredits - usedCredits
 
-    if (remaining <= 0) {
-      return NextResponse.json(
-        { success: false, error: "Crédits IA insuffisants. Veuillez mettre à niveau votre forfait." },
-        { status: 403 }
-      )
+      if (remaining <= 0) {
+        return NextResponse.json(
+          { success: false, error: "Crédits IA insuffisants. Veuillez mettre à niveau votre forfait." },
+          { status: 403 }
+        )
+      }
+
+      // Conditional update: only deduct if used_credits hasn't changed since we read it
+      const { data: updateResult, error: updateError } = await supabase
+        .from("ai_credits")
+        .update({
+          used_credits: usedCredits + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", session.user.id)
+        .eq("used_credits", usedCredits) // Optimistic lock
+        .select()
+        .single()
+
+      if (updateError || !updateResult) {
+        return NextResponse.json(
+          { success: false, error: "Conflit de crédits. Veuillez réessayer." },
+          { status: 409 }
+        )
+      }
+
+      remaining = totalCredits - (usedCredits + 1)
+    } else {
+      // RPC succeeded — creditResult contains remaining credits
+      remaining = creditResult ?? 0
+      if (remaining < 0) {
+        return NextResponse.json(
+          { success: false, error: "Crédits IA insuffisants. Veuillez mettre à niveau votre forfait." },
+          { status: 403 }
+        )
+      }
     }
 
     // Determine stylized prompt
@@ -110,20 +141,7 @@ export async function POST(req: Request) {
       isMock = true
     }
 
-    // 3. Deduct User Credit
-    const { error: updateCreditsError } = await supabase
-      .from("ai_credits")
-      .update({
-        used_credits: usedCredits + 1,
-        updated_at: new Date().toISOString()
-      })
-      .eq("user_id", session.user.id)
-
-    if (updateCreditsError) {
-      console.error("Failed to deduct user AI credit:", updateCreditsError)
-    }
-
-    // 4. Save Generation logs
+    // 3. Save Generation logs
     const { data: genRow, error: genError } = await supabase
       .from("ai_generations")
       .insert({
@@ -156,7 +174,7 @@ export async function POST(req: Request) {
       predictionId,
       generationId: genRow.id,
       isMock,
-      remainingCredits: remaining - 1
+      remainingCredits: remaining
     })
 
   } catch (error) {

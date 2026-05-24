@@ -1,5 +1,5 @@
 // ============================================
-// Database types for Digital Frames AI
+// Database types for Event Frames
 // ============================================
 
 // --- Auth & User ---

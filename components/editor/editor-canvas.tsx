@@ -389,10 +389,15 @@ export function EditorCanvas() {
     const projectId = searchParams.get("project")
     if (!projectId || !session?.user?.id || !canvasReady) return
 
+    let active = true
+
     async function loadProject() {
       try {
         const res = await fetch(`/api/projects?id=${projectId}`)
         const data = await res.json()
+        
+        if (!active) return
+
         if (res.ok && data.success && data.project) {
           const project = data.project
           setProjectName(project.name)
@@ -400,6 +405,13 @@ export function EditorCanvas() {
           
           if (project.canvas_data && fabricRef.current) {
             const canvas = fabricRef.current
+            
+            // Check if canvas is disposed
+            if (!canvas.getContext()) {
+              console.warn("Attempted to load project on a disposed canvas")
+              return
+            }
+
             isTrackingRef.current = false
             
             // Set canvas dimensions from project attributes
@@ -421,12 +433,18 @@ export function EditorCanvas() {
           toast.error(t("editor.toast.loadFailed"))
         }
       } catch (err) {
-        console.error("Error loading project:", err)
-        toast.error(t("editor.toast.loadFailed"))
+        if (active) {
+          console.error("Error loading project:", err)
+          toast.error(t("editor.toast.loadFailed"))
+        }
       }
     }
 
     loadProject()
+
+    return () => {
+      active = false
+    }
   }, [searchParams, session, canvasReady, t])
 
 
@@ -1014,7 +1032,7 @@ export function EditorCanvas() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <FrameIcon className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold hidden sm:block">Digital Frames AI</span>
+            <span className="font-semibold hidden sm:block">Event Frames</span>
           </Link>
           <Separator orientation="vertical" className="h-6" />
           <Input
@@ -1569,7 +1587,13 @@ export function EditorCanvas() {
                           
                           <Button variant="ghost" size="sm" className="w-full text-xs mt-1" onClick={() => {
                             if (fabricRef.current) {
-                              selectedObject.center();
+                              const canvasWidth = fabricRef.current.width || CANVAS_SIZE
+                              const canvasHeight = fabricRef.current.height || CANVAS_SIZE
+                              selectedObject.set({
+                                left: canvasWidth / 2,
+                                top: canvasHeight / 2,
+                              });
+                              selectedObject.setCoords();
                               fabricRef.current.renderAll();
                               saveState();
                             }

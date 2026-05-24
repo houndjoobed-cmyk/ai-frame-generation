@@ -12,19 +12,23 @@ type I18nContextType = {
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en")
+  // Use 'fr' as default to match the primary audience. 
+  // This MUST be the same value on server and client to prevent hydration mismatch.
+  const defaultLocale: Locale = "fr"
+  const [locale, setLocaleState] = useState<Locale>(defaultLocale)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
+    // After mount, check for a stored preference or detect browser language
     const storedLocale = localStorage.getItem("NEXT_LOCALE") as Locale
     if (storedLocale && (storedLocale === "en" || storedLocale === "fr")) {
       setLocaleState(storedLocale)
     } else {
-      // Check browser language preference
       const browserLang = navigator.language.startsWith("fr") ? "fr" : "en"
       setLocaleState(browserLang)
+      localStorage.setItem("NEXT_LOCALE", browserLang)
     }
+    setMounted(true)
   }, [])
 
   const setLocale = (newLocale: Locale) => {
@@ -36,12 +40,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }
 
   const t = (key: string, params?: Record<string, string | number>): string => {
-    const currentDict = translations[locale] || translations.en
+    const currentDict = translations[locale] || translations.fr
     let text = (currentDict as Record<string, string>)[key]
 
     if (!text) {
-      // Fallback to English if key is missing in French
-      text = (translations.en as Record<string, string>)[key] || key
+      // Fallback to French if key is missing
+      text = (translations.fr as Record<string, string>)[key] || key
     }
 
     if (params) {
@@ -53,7 +57,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return text
   }
 
-  // To prevent hydration mismatch, we can still render children but ensure t() works immediately with default/stored locale
   return (
     <I18nContext.Provider value={{ locale, setLocale, t }}>
       {children}

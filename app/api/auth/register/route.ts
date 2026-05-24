@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { sendVerificationEmail } from "@/lib/mail"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    // Rate Limiting: max 5 requests per 15 mins per IP
+    const limitResult = await rateLimit("auth:register", 5, 15 * 60 * 1000)
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: "Trop de tentatives d'inscription. Veuillez réessayer dans 15 minutes." },
+        { status: 429 }
+      )
+    }
+
     const { name, email, password } = await request.json()
 
     if (!email || !password) {
@@ -82,7 +93,30 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
-    return NextResponse.json({ success: true })
+    // Generate verification token
+    const token = `verify_${crypto.randomUUID()}`
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+    const { error: tokenError } = await supabase
+      .schema("next_auth")
+      .from("verification_tokens")
+      .insert({
+        identifier: email,
+        token: token,
+        expires: expires.toISOString(),
+      })
+
+    if (tokenError) {
+      console.error("Error creating verification token:", tokenError)
+    } else {
+      try {
+        await sendVerificationEmail(email, name, token)
+      } catch (mailErr) {
+        console.error("Error sending verification email:", mailErr)
+      }
+    }
+
+    return NextResponse.json({ success: true, requiresVerification: true, email })
   } catch (error) {
     console.error("Registration error:", error)
     return NextResponse.json(

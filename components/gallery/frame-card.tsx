@@ -18,7 +18,7 @@ interface FrameCardProps {
 export function FrameCard({ frame }: FrameCardProps) {
   const { data: session } = useSession()
   const [isLiked, setIsLiked] = useState(frame.is_liked || false)
-  const [likesCount, setLikesCount] = useState(frame.likes_count || 0)
+  const [likesCount, setLikesCount] = useState(frame.like_count || 0)
 
   async function handleLike() {
     if (!session?.user) {
@@ -35,7 +35,7 @@ export function FrameCard({ frame }: FrameCardProps) {
         if (!res.ok || !data.success) throw new Error()
 
         setIsLiked(false)
-        setLikesCount((c) => c - 1)
+        setLikesCount((c: number) => c - 1)
       } else {
         const res = await fetch("/api/likes", {
           method: "POST",
@@ -46,7 +46,7 @@ export function FrameCard({ frame }: FrameCardProps) {
         if (!res.ok || !data.success) throw new Error()
 
         setIsLiked(true)
-        setLikesCount((c) => c + 1)
+        setLikesCount((c: number) => c + 1)
       }
     } catch {
       toast.error("Failed to update like")

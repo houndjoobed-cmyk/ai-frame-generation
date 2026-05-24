@@ -21,10 +21,17 @@ export async function POST(req: Request) {
         .from("user_subscriptions")
         .select("*, plan:subscription_plans(*)")
         .eq("user_id", userId)
-        .eq("status", "active")
+        .in("status", ["active", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle()
 
-      if (sub && sub.plan) {
+      const isSubActive = sub && (
+        sub.status === "active" || 
+        (sub.status === "cancelled" && sub.current_period_end && new Date(sub.current_period_end) > new Date())
+      )
+
+      if (isSubActive && sub && sub.plan) {
         plan = sub.plan
         maxExports = plan.max_exports_per_month ?? 9999
         hasHdExport = plan.has_hd_export ?? false

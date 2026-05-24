@@ -35,7 +35,7 @@ export function Footer() {
               <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
                 <Frame className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-semibold tracking-tight">Digital Frames AI</span>
+              <span className="text-xl font-semibold tracking-tight">Event Frames</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               {t("footer.description")}

@@ -40,6 +40,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null
         }
 
+        // Enforce email verification
+        if (!user.emailVerified) {
+          throw new Error("EmailNotVerified")
+        }
+
         // Get password from a separate passwords table
         const { data: passwordData } = await supabase
           .from("user_passwords")
@@ -73,15 +78,42 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
+        // Fetch role from profiles on initial sign-in
+        try {
+          const supabase = createAdminClient()
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("user_id", user.id)
+            .single()
+          token.role = profile?.role || "user"
+        } catch {
+          token.role = "user"
+        }
+      }
+      // Refresh role periodically (every session update)
+      if (trigger === "update" && token.id) {
+        try {
+          const supabase = createAdminClient()
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("user_id", token.id as string)
+            .single()
+          token.role = profile?.role || "user"
+        } catch {
+          // Keep existing role
+        }
       }
       return token
     },
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string
+        ;(session.user as any).role = token.role as string || "user"
       }
       return session
     },

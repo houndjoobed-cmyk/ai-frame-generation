@@ -42,6 +42,16 @@ function LoginContent() {
     setIsLoading(true)
 
     try {
+      // Check if email is verified first
+      const checkRes = await fetch(`/api/auth/verify-email/status?email=${encodeURIComponent(email)}`)
+      const checkData = await checkRes.json()
+
+      if (checkRes.ok && !checkData.verified) {
+        router.push(`/auth/login?error=EmailNotVerified&email=${encodeURIComponent(email)}`)
+        setIsLoading(false)
+        return
+      }
+
       const result = await signIn("credentials", {
         email,
         password,
@@ -74,7 +84,7 @@ function LoginContent() {
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
               <Frame className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-semibold tracking-tight">Digital Frames AI</span>
+            <span className="text-2xl font-semibold tracking-tight">Event Frames</span>
           </Link>
           <p className="text-muted-foreground">{t("auth.welcomeBack")}</p>
         </div>
@@ -89,9 +99,40 @@ function LoginContent() {
           <CardContent className="space-y-4">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-                {error === "OAuthAccountNotLinked"
-                  ? t("auth.error.OAuthAccountNotLinked")
-                  : t("auth.toast.error")}
+                {error === "OAuthAccountNotLinked" && t("auth.error.OAuthAccountNotLinked")}
+                {error === "EmailNotVerified" && (
+                  <div className="space-y-2">
+                    <p>{t("auth.error.EmailNotVerified") || "Votre adresse e-mail n'est pas encore vérifiée."}</p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const emailInput = email || searchParams.get("email") || ""
+                        if (!emailInput) {
+                          toast.error("Veuillez saisir votre adresse e-mail dans le formulaire d'abord.")
+                          return
+                        }
+                        try {
+                          const res = await fetch("/api/auth/resend-verification", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: emailInput }),
+                          })
+                          if (res.ok) {
+                            toast.success(t("auth.toast.verificationResent") || "E-mail de vérification renvoyé !")
+                          } else {
+                            toast.error(t("auth.toast.error"))
+                          }
+                        } catch {
+                          toast.error(t("auth.toast.error"))
+                        }
+                      }}
+                      className="text-xs text-primary hover:underline font-semibold block mx-auto cursor-pointer bg-transparent border-0"
+                    >
+                      {t("auth.resendEmail") || "Renvoyer l'e-mail de vérification"}
+                    </button>
+                  </div>
+                )}
+                {error !== "OAuthAccountNotLinked" && error !== "EmailNotVerified" && t("auth.toast.error")}
               </div>
             )}
 

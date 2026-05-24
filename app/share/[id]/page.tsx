@@ -20,23 +20,23 @@ export async function generateMetadata({ params }: SharePageProps) {
 
   if (!data || !data.file_url) {
     return {
-      title: "Cadre Photo - Digital Frames AI",
+      title: "Cadre Photo - Event Frames",
       description: "Découvrez cette photo encadrée !",
     }
   }
 
   return {
-    title: "Mon magnifique cadre photo ! - Digital Frames AI",
-    description: "Créé avec Digital Frames AI. Créez et téléchargez vos propres cadres personnalisés gratuitement !",
+    title: "Mon magnifique cadre photo ! - Event Frames",
+    description: "Créé avec Event Frames. Créez et téléchargez vos propres cadres personnalisés gratuitement !",
     openGraph: {
-      title: "Mon magnifique cadre photo ! - Digital Frames AI",
-      description: "Créé avec Digital Frames AI. Créez et téléchargez vos propres cadres personnalisés gratuitement !",
+      title: "Mon magnifique cadre photo ! - Event Frames",
+      description: "Créé avec Event Frames. Créez et téléchargez vos propres cadres personnalisés gratuitement !",
       images: [{ url: data.file_url }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Mon magnifique cadre photo ! - Digital Frames AI",
-      description: "Créé avec Digital Frames AI. Créez et téléchargez vos propres cadres personnalisés gratuitement !",
+      title: "Mon magnifique cadre photo ! - Event Frames",
+      description: "Créé avec Event Frames. Créez et téléchargez vos propres cadres personnalisés gratuitement !",
       images: [data.file_url],
     }
   }

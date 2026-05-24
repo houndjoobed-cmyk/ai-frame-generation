@@ -15,9 +15,17 @@ export async function POST(req: Request) {
     // Verify transaction status with Kkiapay API
     // We send request to sandbox or live depending on keys
     const kkiapayUrl = `https://api.kkiapay.me/api/v1/transactions/status/${transactionId}`
-    const publicKey = process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY || "dd9f1b2b801a61ad34f2d72f10b741df0dbb6e22"
-    const privateKey = process.env.KKIAPAY_PRIVATE_KEY || "sk_sandbox_..." // user private key or sandbox fallback
-    const secretKey = process.env.KKIAPAY_SECRET_KEY || "sec_sandbox_..."
+    const publicKey = process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY
+    const privateKey = process.env.KKIAPAY_PRIVATE_KEY
+    const secretKey = process.env.KKIAPAY_SECRET_KEY
+
+    if (!publicKey || !privateKey || !secretKey) {
+      console.error("KkiaPay API keys are not configured in environment variables.")
+      return NextResponse.json(
+        { success: false, error: "Payment service is not configured." },
+        { status: 500 }
+      )
+    }
 
     const response = await fetch(kkiapayUrl, {
       method: "GET",
@@ -70,11 +78,27 @@ export async function POST(req: Request) {
     const { userId, planId, isAnnual } = metadata
     const supabase = createAdminClient()
 
+    // Map mock plan IDs to database UUIDs
+    const resolvePlanId = (id: string): string => {
+      if (id === "free-plan-id" || id === "free") {
+        return "91c3dd78-aea6-4ddf-985c-6d9d6ab9c4ee"
+      }
+      if (id === "pro-plan-id" || id === "pro") {
+        return "5dbd986d-89fa-43dd-bd21-13eb6790e276"
+      }
+      if (id === "business-plan-id" || id === "business") {
+        return "d6bbacfc-213b-472c-b2a5-c6dbf9fb4dbc"
+      }
+      return id
+    }
+
+    const targetPlanId = resolvePlanId(planId)
+
     // 1. Fetch Plan Details to get max credits
     const { data: plan, error: planError } = await supabase
       .from("subscription_plans")
       .select("*")
-      .eq("id", planId)
+      .eq("id", targetPlanId)
       .maybeSingle()
 
     if (planError) {
@@ -86,7 +110,7 @@ export async function POST(req: Request) {
     }
 
     // Determine features if plan was not found in DB (fallback starter or pro keys)
-    const maxCredits = plan?.max_ai_credits_per_month || (planId === "pro-plan-id" ? 100 : planId === "business-plan-id" ? 9999 : 5)
+    const maxCredits = plan?.max_ai_credits_per_month || (targetPlanId === "5dbd986d-89fa-43dd-bd21-13eb6790e276" ? 100 : targetPlanId === "d6bbacfc-213b-472c-b2a5-c6dbf9fb4dbc" ? 9999 : 5)
 
     // Calculate subscription validity end date
     const durationDays = isAnnual ? 365 : 30
@@ -100,13 +124,13 @@ export async function POST(req: Request) {
       .eq("status", "active")
       .maybeSingle()
 
+    let subscriptionId = existingSub?.id
+
     if (existingSub) {
       const { error: subUpdateError } = await supabase
         .from("user_subscriptions")
         .update({
-          plan_id: planId === "pro-plan-id" || planId === "business-plan-id" || planId === "free-plan-id" 
-            ? planId 
-            : planId, // update plan ID
+          plan_id: targetPlanId,
           payment_reference: transactionId,
           current_period_start: new Date().toISOString(),
           current_period_end: periodEnd,
@@ -119,22 +143,52 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Failed to update subscription." }, { status: 500 })
       }
     } else {
-      const { error: subInsertError } = await supabase
+      const { data: newSub, error: subInsertError } = await supabase
         .from("user_subscriptions")
         .insert({
           user_id: userId,
-          plan_id: planId,
+          plan_id: targetPlanId,
           status: "active",
           payment_provider: "kkiapay",
           payment_reference: transactionId,
           current_period_start: new Date().toISOString(),
           current_period_end: periodEnd,
         })
+        .select("id")
+        .single()
 
-      if (subInsertError) {
+      if (subInsertError || !newSub) {
         console.error("Failed to insert user subscription:", subInsertError)
         return NextResponse.json({ success: false, error: "Failed to activate subscription." }, { status: 500 })
       }
+      subscriptionId = newSub.id
+    }
+
+    // 2b. Log payment history record in public.payments
+    const amountPaid = data.amount || (isAnnual ? (plan?.price_yearly || 29900) : (plan?.price_monthly || 2990))
+    const currency = data.currency || plan?.currency || "XOF"
+
+    const { error: paymentInsertError } = await supabase
+      .from("payments")
+      .insert({
+        user_id: userId,
+        subscription_id: subscriptionId,
+        amount: amountPaid,
+        currency: currency,
+        provider: "kkiapay",
+        provider_reference: transactionId,
+        status: "completed",
+        description: `Abonnement au forfait ${plan?.name || targetPlanId}`,
+        metadata: {
+          kkiapay_transaction_id: transactionId,
+          plan_id: targetPlanId,
+          is_annual: isAnnual,
+        },
+      })
+
+    if (paymentInsertError) {
+      console.error("Failed to record payment in DB:", paymentInsertError)
+      // Do not fail transaction if payment record fails, since sub active and credits were refilled.
     }
 
     // 3. Refill user AI Credits

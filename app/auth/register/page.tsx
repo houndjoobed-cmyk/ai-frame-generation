@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Frame, Loader2 } from "lucide-react"
+import { Frame, Loader2, Mail } from "lucide-react"
 import { toast } from "sonner"
 import { signIn } from "next-auth/react"
 import { useI18n } from "@/lib/i18n/i18n-context"
@@ -22,6 +22,8 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isPendingVerification, setIsPendingVerification] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -51,8 +53,14 @@ export default function RegisterPage() {
         throw new Error(data.error || "Registration failed")
       }
 
-      toast.success(t("auth.toast.created"))
-      router.push("/auth/login?registered=true")
+      if (data.requiresVerification) {
+        setRegisteredEmail(email)
+        setIsPendingVerification(true)
+        toast.success(t("auth.toast.checkEmail"))
+      } else {
+        toast.success(t("auth.toast.created"))
+        router.push("/auth/login?registered=true")
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("auth.toast.error"))
     } finally {
@@ -65,6 +73,69 @@ export default function RegisterPage() {
     await signIn("google", { callbackUrl: "/dashboard" })
   }
 
+  if (isPendingVerification) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center mb-8">
+            <Link href="/" className="flex items-center gap-2 mb-2">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                <Frame className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <span className="text-2xl font-semibold tracking-tight">Event Frames</span>
+            </Link>
+          </div>
+
+          <Card>
+            <CardHeader className="space-y-1 text-center">
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-6 h-6" />
+              </div>
+              <CardTitle className="text-2xl">{t("auth.checkEmailTitle")}</CardTitle>
+              <CardDescription>
+                {t("auth.checkEmailDesc") ? t("auth.checkEmailDesc").replace("{email}", registeredEmail) : `We have sent a verification link to ${registeredEmail}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                {t("auth.checkEmailSpam")}
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/auth/login">
+                  {t("header.signIn")}
+                </Link>
+              </Button>
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/auth/resend-verification", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: registeredEmail }),
+                      })
+                      if (res.ok) {
+                        toast.success(t("auth.toast.verificationResent"))
+                      } else {
+                        toast.error(t("auth.toast.error"))
+                      }
+                    } catch {
+                      toast.error(t("auth.toast.error"))
+                    }
+                  }}
+                  className="text-sm text-primary hover:underline font-medium cursor-pointer bg-transparent border-0"
+                >
+                  {t("auth.resendEmail")}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-md">
@@ -73,7 +144,7 @@ export default function RegisterPage() {
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
               <Frame className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-semibold tracking-tight">Digital Frames AI</span>
+            <span className="text-2xl font-semibold tracking-tight">Event Frames</span>
           </Link>
           <p className="text-muted-foreground">{t("auth.createDesc")}</p>
         </div>

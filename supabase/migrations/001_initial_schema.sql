@@ -1,5 +1,5 @@
 -- ============================================
--- Digital Frames AI - Database Migration
+-- Event Frames - Database Migration
 -- Complete schema for the platform
 -- ============================================
 
@@ -323,6 +323,28 @@ CREATE INDEX idx_user_favorites_user ON public.user_favorites(user_id);
 -- ============================================
 -- FUNCTIONS
 -- ============================================
+
+-- Atomically deduct one AI credit (prevents race conditions)
+-- Returns remaining credits after deduction, or -1 if insufficient
+CREATE OR REPLACE FUNCTION public.deduct_ai_credit(p_user_id UUID)
+RETURNS INT AS $$
+DECLARE
+  v_remaining INT;
+BEGIN
+  UPDATE public.ai_credits
+  SET used_credits = used_credits + 1,
+      updated_at = NOW()
+  WHERE user_id = p_user_id
+    AND used_credits < total_credits
+  RETURNING (total_credits - used_credits) INTO v_remaining;
+
+  IF NOT FOUND THEN
+    RETURN -1;
+  END IF;
+
+  RETURN v_remaining;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.handle_updated_at()

@@ -19,9 +19,13 @@ export default async function LikedPage() {
       frame:frames(
         id,
         name,
+        description,
         thumbnail_url,
         image_url,
-        category:categories(name)
+        like_count,
+        download_count,
+        is_premium,
+        category:categories(id, name)
       )
     `)
     .eq("user_id", session?.user?.id || "")

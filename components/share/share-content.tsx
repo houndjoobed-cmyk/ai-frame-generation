@@ -31,7 +31,7 @@ export function SharePageContent({ exportData }: SharePageContentProps) {
   const shareUrl = typeof window !== "undefined" 
     ? `${window.location.origin}/share/${exportData.id}` 
     : ""
-  const shareText = `Regardez la photo encadrée que j'ai créée avec Digital Frames AI !`
+  const shareText = `Regardez la photo encadrée que j'ai créée avec Event Frames !`
 
   const handleCopyLink = async () => {
     try {

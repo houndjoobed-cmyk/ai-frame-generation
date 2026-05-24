@@ -172,11 +172,11 @@ export default function PricingPage() {
         key: process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY || "dd9f1b2b801a61ad34f2d72f10b741df0dbb6e22",
         sandbox: true,
         data: JSON.stringify({
-          userId: session.user.id,
+          userId: (session?.user as any)?.id,
           planId: plan.id,
           isAnnual: isAnnual,
         }),
-        email: session.user.email || "",
+        email: (session?.user as any)?.email || "",
         phone: "",
         callback: "onKkiapaySuccess",
       })
@@ -289,12 +289,12 @@ export default function PricingPage() {
                       )}
                     </CardHeader>
 
-                    <CardContent className="px-8 pb-8 flex-grow">
+                    <CardContent className="px-8 pb-8 grow">
                       <div className="border-t border-border/40 my-6" />
                       <ul className="space-y-4">
                         {(Array.isArray(plan.features) ? plan.features : []).map((feature: string, idx: number) => (
                           <li key={idx} className="flex items-start gap-3">
-                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                               <Check className="w-3.5 h-3.5 text-primary" />
                             </div>
                             <span className="text-sm font-light text-muted-foreground leading-snug">{feature}</span>
@@ -307,7 +307,7 @@ export default function PricingPage() {
                       <Button
                         className={`w-full py-6 rounded-full font-bold text-base transition-all duration-300 ${
                           isPopular 
-                            ? "bg-gradient-to-r from-primary to-purple-600 hover:scale-[1.02] shadow-lg shadow-primary/20" 
+                            ? "bg-linear-to-r from-primary to-purple-600 hover:scale-[1.02] shadow-lg shadow-primary/20" 
                             : "variant-outline hover:bg-muted hover:scale-[1.02]"
                         }`}
                         onClick={() => handleSubscribe(plan)}
@@ -340,7 +340,7 @@ export default function PricingPage() {
             <div className="grid gap-6 md:grid-cols-2">
               <Card className="bg-card/35 backdrop-blur border-border/40 p-6">
                 <h4 className="font-bold text-base flex gap-2">
-                  <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                  <HelpCircle className="w-5 h-5 text-primary shrink-0" />
                   {t("pricing.faq.q1")}
                 </h4>
                 <p className="mt-3 text-sm text-muted-foreground font-light leading-relaxed">
@@ -350,7 +350,7 @@ export default function PricingPage() {
 
               <Card className="bg-card/35 backdrop-blur border-border/40 p-6">
                 <h4 className="font-bold text-base flex gap-2">
-                  <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                  <HelpCircle className="w-5 h-5 text-primary shrink-0" />
                   Quels modes de paiement locaux sont acceptés ?
                 </h4>
                 <p className="mt-3 text-sm text-muted-foreground font-light leading-relaxed">
@@ -360,7 +360,7 @@ export default function PricingPage() {
 
               <Card className="bg-card/35 backdrop-blur border-border/40 p-6">
                 <h4 className="font-bold text-base flex gap-2">
-                  <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                  <HelpCircle className="w-5 h-5 text-primary shrink-0" />
                   {t("pricing.faq.q3")}
                 </h4>
                 <p className="mt-3 text-sm text-muted-foreground font-light leading-relaxed">
@@ -370,7 +370,7 @@ export default function PricingPage() {
 
               <Card className="bg-card/35 backdrop-blur border-border/40 p-6">
                 <h4 className="font-bold text-base flex gap-2">
-                  <HelpCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                  <HelpCircle className="w-5 h-5 text-primary shrink-0" />
                   {t("pricing.faq.q4")}
                 </h4>
                 <p className="mt-3 text-sm text-muted-foreground font-light leading-relaxed">

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { FrameCard } from "@/components/gallery/frame-card"
 import { createClient } from "@/lib/supabase/client"
 import type { Frame, Category } from "@/lib/types"
-import { Search, SlidersHorizontal, X } from "lucide-react"
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { useSession } from "next-auth/react"
 
 export function GalleryContent() {
   const router = useRouter()
@@ -24,6 +25,7 @@ export function GalleryContent() {
   const categoryParam = searchParams.get("category")
   const searchParam = searchParams.get("search")
   const { t } = useI18n()
+  const { data: session } = useSession()
 
   const [frames, setFrames] = useState<Frame[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -31,6 +33,12 @@ export function GalleryContent() {
   const [searchQuery, setSearchQuery] = useState(searchParam || "")
   const [sortBy, setSortBy] = useState<"popular" | "newest" | "name">("popular")
   const [isLoading, setIsLoading] = useState(true)
+  
+  const pageParam = searchParams.get("page")
+  const currentPage = pageParam ? parseInt(pageParam) : 1
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const ITEMS_PER_PAGE = 12
 
   const supabase = createClient()
 
@@ -58,7 +66,7 @@ export function GalleryContent() {
         .select(`
           *,
           category:categories(*)
-        `)
+        `, { count: "exact" })
         .eq("is_active", true)
 
       if (selectedCategory) {
@@ -86,17 +94,40 @@ export function GalleryContent() {
           break
       }
 
-      const { data, error } = await query.limit(50)
+      const from = (currentPage - 1) * ITEMS_PER_PAGE
+      const to = from + ITEMS_PER_PAGE - 1
+
+      const { data, error, count } = await query.range(from, to)
 
       if (data && !error) {
-        setFrames(data as Frame[])
+        let likedFrameIds = new Set<string>()
+        if (session?.user?.id && data.length > 0) {
+          const { data: likes } = await supabase
+            .from("frame_likes")
+            .select("frame_id")
+            .eq("user_id", session.user.id)
+            .in("frame_id", data.map((f: any) => f.id))
+          
+          if (likes) {
+            likedFrameIds = new Set(likes.map((l: any) => l.frame_id))
+          }
+        }
+
+        const mapped = data.map((frame: any) => ({
+          ...frame,
+          is_liked: likedFrameIds.has(frame.id)
+        }))
+
+        setFrames(mapped as Frame[])
+        setTotalCount(count || 0)
+        setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE))
       }
       
       setIsLoading(false)
     }
 
     fetchFrames()
-  }, [selectedCategory, searchQuery, sortBy, categories])
+  }, [selectedCategory, searchQuery, sortBy, categories, currentPage, session?.user?.id])
 
   function handleCategorySelect(slug: string | null) {
     setSelectedCategory(slug)
@@ -106,6 +137,7 @@ export function GalleryContent() {
     } else {
       params.delete("category")
     }
+    params.delete("page")
     router.push(`/gallery?${params.toString()}`)
   }
 
@@ -117,6 +149,13 @@ export function GalleryContent() {
     } else {
       params.delete("search")
     }
+    params.delete("page")
+    router.push(`/gallery?${params.toString()}`)
+  }
+
+  function handlePageChange(newPage: number) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("page", newPage.toString())
     router.push(`/gallery?${params.toString()}`)
   }
 
@@ -238,13 +277,58 @@ export function GalleryContent() {
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-4">
-              {t("gallery.showing")} {frames.length} {t("gallery.framesCount")}
+              {t("gallery.showing")} {Math.min(totalCount, (currentPage - 1) * ITEMS_PER_PAGE + 1)}-{Math.min(totalCount, currentPage * ITEMS_PER_PAGE)} {t("gallery.of") || "sur"} {totalCount} {t("gallery.framesCount")}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {frames.map((frame) => (
                 <FrameCard key={frame.id} frame={frame} />
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-12 pt-6 border-t">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="cursor-pointer"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                {/* Page number buttons */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                  if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) {
+                    return (
+                      <Button
+                        key={p}
+                        variant={p === currentPage ? "default" : "outline"}
+                        onClick={() => handlePageChange(p)}
+                        className="w-10 h-10 cursor-pointer"
+                      >
+                        {p}
+                      </Button>
+                    )
+                  }
+                  if (p === 2 || p === totalPages - 1) {
+                    return <span key={p} className="px-2 text-muted-foreground">...</span>
+                  }
+                  return null
+                })}
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="cursor-pointer"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>

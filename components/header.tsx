@@ -11,14 +11,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Frame, Menu, X, User, Settings, LogOut, LayoutDashboard, Globe } from "lucide-react"
-import { useState } from "react"
+import { Frame, Menu, X, User, Settings, LogOut, LayoutDashboard, Globe, Sun, Moon, Shield } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { useTheme } from "next-themes"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 
 export function Header() {
   const { data: session, status } = useSession()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { locale, setLocale, t } = useI18n()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const navigation = [
     { name: t("nav.gallery"), href: "/gallery" },
@@ -34,7 +42,7 @@ export function Header() {
             <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
               <Frame className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-semibold tracking-tight hidden sm:block">Digital Frames AI</span>
+            <span className="text-xl font-semibold tracking-tight hidden sm:block">Event Frames</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
@@ -51,6 +59,24 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Notification Bell — only for logged-in users */}
+          {session && <NotificationBell />}
+
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 px-0 text-muted-foreground hover:text-foreground cursor-pointer"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+          >
+            {mounted && theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </Button>
+
           {/* Language Switcher */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -119,6 +145,15 @@ export function Header() {
                       {t("header.settings")}
                     </Link>
                   </DropdownMenuItem>
+                  {/* Admin link — only visible for admin/super_admin */}
+                  {((session.user as any)?.role === "admin" || (session.user as any)?.role === "super_admin") && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="cursor-pointer">
+                        <Shield className="mr-2 h-4 w-4" />
+                        {t("header.admin")}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"

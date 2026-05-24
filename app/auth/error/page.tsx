@@ -53,7 +53,7 @@ function AuthErrorContent() {
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
               <Frame className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-semibold tracking-tight">Digital Frames AI</span>
+            <span className="text-2xl font-semibold tracking-tight">Event Frames</span>
           </Link>
         </div>
 
