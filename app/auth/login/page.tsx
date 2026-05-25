@@ -31,7 +31,7 @@ function LoginContent() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
   const error = searchParams.get("error")
   const { t } = useI18n()
-  
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)

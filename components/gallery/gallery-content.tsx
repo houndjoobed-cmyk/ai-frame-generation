@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FrameCard } from "@/components/gallery/frame-card"
-import { createClient } from "@/lib/supabase/client"
 import type { Frame, Category } from "@/lib/types"
-import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -17,147 +16,62 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/i18n-context"
-import { useSession } from "next-auth/react"
 
-export function GalleryContent() {
+interface GalleryContentProps {
+  frames: Frame[]
+  categories: Category[]
+  totalCount: number
+  totalPages: number
+  currentPage: number
+  categoryParam: string | null
+  searchParam: string
+  sortByParam: string
+}
+
+export function GalleryContent({
+  frames,
+  categories,
+  totalCount,
+  totalPages,
+  currentPage,
+  categoryParam,
+  searchParam,
+  sortByParam
+}: GalleryContentProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const categoryParam = searchParams.get("category")
-  const searchParam = searchParams.get("search")
   const { t } = useI18n()
-  const { data: session } = useSession()
-
-  const [frames, setFrames] = useState<Frame[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam)
-  const [searchQuery, setSearchQuery] = useState(searchParam || "")
-  const [sortBy, setSortBy] = useState<"popular" | "newest" | "name">("popular")
-  const [isLoading, setIsLoading] = useState(true)
   
-  const pageParam = searchParams.get("page")
-  const currentPage = pageParam ? parseInt(pageParam) : 1
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
-  const ITEMS_PER_PAGE = 12
+  const [isPending, startTransition] = useTransition()
+  const [searchQuery, setSearchQuery] = useState(searchParam)
 
-  const supabase = createClient()
-
-  useEffect(() => {
-    async function fetchCategories() {
-      const { data } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name")
-      
-      if (data) {
-        setCategories(data)
-      }
-    }
-
-    fetchCategories()
-  }, [])
-
-  useEffect(() => {
-    async function fetchFrames() {
-      setIsLoading(true)
-      
-      let query = supabase
-        .from("frames")
-        .select(`
-          *,
-          category:categories(*)
-        `, { count: "exact" })
-        .eq("is_active", true)
-
-      if (selectedCategory) {
-        const category = categories.find(
-          (c) => c.slug === selectedCategory || c.name.toLowerCase() === selectedCategory.toLowerCase()
-        )
-        if (category) {
-          query = query.eq("category_id", category.id)
+  function updateParams(newParams: Record<string, string | null>) {
+    startTransition(() => {
+      const url = new URL(window.location.href)
+      Object.entries(newParams).forEach(([key, value]) => {
+        if (value === null) {
+          url.searchParams.delete(key)
+        } else {
+          url.searchParams.set(key, value)
         }
-      }
-
-      if (searchQuery) {
-        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
-      }
-
-      switch (sortBy) {
-        case "popular":
-          query = query.order("download_count", { ascending: false })
-          break
-        case "newest":
-          query = query.order("created_at", { ascending: false })
-          break
-        case "name":
-          query = query.order("name")
-          break
-      }
-
-      const from = (currentPage - 1) * ITEMS_PER_PAGE
-      const to = from + ITEMS_PER_PAGE - 1
-
-      const { data, error, count } = await query.range(from, to)
-
-      if (data && !error) {
-        let likedFrameIds = new Set<string>()
-        if (session?.user?.id && data.length > 0) {
-          const { data: likes } = await supabase
-            .from("frame_likes")
-            .select("frame_id")
-            .eq("user_id", session.user.id)
-            .in("frame_id", data.map((f: any) => f.id))
-          
-          if (likes) {
-            likedFrameIds = new Set(likes.map((l: any) => l.frame_id))
-          }
-        }
-
-        const mapped = data.map((frame: any) => ({
-          ...frame,
-          is_liked: likedFrameIds.has(frame.id)
-        }))
-
-        setFrames(mapped as Frame[])
-        setTotalCount(count || 0)
-        setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE))
-      }
-      
-      setIsLoading(false)
-    }
-
-    fetchFrames()
-  }, [selectedCategory, searchQuery, sortBy, categories, currentPage, session?.user?.id])
+      })
+      router.push(url.pathname + url.search)
+    })
+  }
 
   function handleCategorySelect(slug: string | null) {
-    setSelectedCategory(slug)
-    const params = new URLSearchParams(searchParams.toString())
-    if (slug) {
-      params.set("category", slug)
-    } else {
-      params.delete("category")
-    }
-    params.delete("page")
-    router.push(`/gallery?${params.toString()}`)
+    updateParams({ category: slug, page: null })
   }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    const params = new URLSearchParams(searchParams.toString())
-    if (searchQuery) {
-      params.set("search", searchQuery)
-    } else {
-      params.delete("search")
-    }
-    params.delete("page")
-    router.push(`/gallery?${params.toString()}`)
+    updateParams({ search: searchQuery || null, page: null })
   }
 
   function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", newPage.toString())
-    router.push(`/gallery?${params.toString()}`)
+    updateParams({ page: newPage.toString() })
   }
+
+  const ITEMS_PER_PAGE = 12
 
   return (
     <div className="py-8">
@@ -188,7 +102,7 @@ export function GalleryContent() {
                 {t("gallery.searchBtn")}
               </Button>
             </form>
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <Select value={sortByParam} onValueChange={(v) => updateParams({ sort: v })}>
               <SelectTrigger className="w-[180px]">
                 <SlidersHorizontal className="mr-2 h-4 w-4" />
                 <SelectValue placeholder={t("gallery.sortBy")} />
@@ -204,7 +118,7 @@ export function GalleryContent() {
           {/* Category Pills */}
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={selectedCategory === null ? "default" : "outline"}
+              variant={categoryParam === null ? "default" : "outline"}
               size="sm"
               onClick={() => handleCategorySelect(null)}
             >
@@ -213,7 +127,7 @@ export function GalleryContent() {
             {categories.map((category) => (
               <Button
                 key={category.id}
-                variant={selectedCategory === category.slug ? "default" : "outline"}
+                variant={categoryParam === category.slug ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleCategorySelect(category.slug)}
               >
@@ -223,12 +137,12 @@ export function GalleryContent() {
           </div>
 
           {/* Active Filters */}
-          {(selectedCategory || searchParam) && (
+          {(categoryParam || searchParam) && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{t("gallery.activeFilters")}</span>
-              {selectedCategory && (
+              {categoryParam && (
                 <Badge variant="secondary" className="gap-1">
-                  {categories.find((c) => c.slug === selectedCategory)?.name || selectedCategory}
+                  {categories.find((c) => c.slug === categoryParam)?.name || categoryParam}
                   <button onClick={() => handleCategorySelect(null)}>
                     <X className="h-3 w-3" />
                   </button>
@@ -239,9 +153,7 @@ export function GalleryContent() {
                   &quot;{searchParam}&quot;
                   <button onClick={() => {
                     setSearchQuery("")
-                    const params = new URLSearchParams(searchParams.toString())
-                    params.delete("search")
-                    router.push(`/gallery?${params.toString()}`)
+                    updateParams({ search: null })
                   }}>
                     <X className="h-3 w-3" />
                   </button>
@@ -252,7 +164,7 @@ export function GalleryContent() {
         </div>
 
         {/* Results */}
-        {isLoading ? (
+        {isPending ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="aspect-square rounded-xl bg-muted animate-pulse" />

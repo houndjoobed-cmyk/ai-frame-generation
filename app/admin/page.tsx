@@ -1,170 +1,108 @@
-"use client"
+import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { AdminDashboardClient } from "@/components/admin/admin-dashboard-client"
 
-import { useState, useEffect } from "react"
-import { StatsCards } from "@/components/admin/stats-cards"
-import { useI18n } from "@/lib/i18n/i18n-context"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
-import { toast } from "sonner"
-
-const PIE_COLORS = ["#6366f1", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"]
-
-interface StatsData {
-  totalUsers: number
-  totalFrames: number
-  totalProjects: number
-  totalExports: number
-  activeSubscriptions: number
-  monthlyRevenue: number
-  planDistribution: Record<string, number>
-  signupsChart: { date: string; count: number }[]
+async function isAdmin(userId: string): Promise<boolean> {
+  const supabase = createAdminClient()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", userId)
+    .single()
+  return profile?.role === "admin" || profile?.role === "super_admin"
 }
 
-export default function AdminDashboardPage() {
-  const { t } = useI18n()
-  const [stats, setStats] = useState<StatsData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch("/api/admin/stats")
-        const json = await res.json()
-        if (res.ok) {
-          setStats(json.data)
-        } else {
-          toast.error(json.error || "Erreur")
-        }
-      } catch {
-        toast.error("Erreur de connexion")
-      }
-      setIsLoading(false)
-    }
-    fetchStats()
-  }, [])
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-28 bg-muted animate-pulse rounded-xl" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-72 bg-muted animate-pulse rounded-xl" />
-          <div className="h-72 bg-muted animate-pulse rounded-xl" />
-        </div>
-      </div>
-    )
+export default async function AdminDashboardPage() {
+  const session = await auth()
+  if (!session?.user?.id) {
+    redirect("/auth/signin")
   }
 
-  if (!stats) return null
+  const userIsAdmin = await isAdmin(session.user.id)
+  if (!userIsAdmin) {
+    redirect("/dashboard")
+  }
 
-  // Prepare pie chart data
-  const pieData = Object.entries(stats.planDistribution).map(([name, value]) => ({
-    name,
-    value,
-  }))
+  const supabase = createAdminClient()
 
-  // Format chart dates
-  const barData = stats.signupsChart.map((d) => ({
-    ...d,
-    label: new Date(d.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
-  }))
+  const [
+    usersResult,
+    framesResult,
+    projectsResult,
+    exportsResult,
+    activeSubsResult,
+    revenueResult,
+    planDistributionResult,
+  ] = await Promise.all([
+    supabase.from("profiles").select("*", { count: "exact", head: true }),
+    supabase.from("frames").select("*", { count: "exact", head: true }),
+    supabase.from("projects").select("*", { count: "exact", head: true }),
+    supabase.from("exports").select("*", { count: "exact", head: true }),
+    supabase.from("user_subscriptions").select("*", { count: "exact", head: true }).eq("status", "active"),
+    supabase
+      .from("payments")
+      .select("amount")
+      .eq("status", "completed")
+      .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+    supabase
+      .from("user_subscriptions")
+      .select("plan_id, status, plan:subscription_plans(name, slug)")
+      .eq("status", "active"),
+  ])
 
-  return (
-    <div className="space-y-8">
-      {/* Title */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("admin.dashboardTitle")}</h1>
-        <p className="text-muted-foreground text-sm mt-1">{t("admin.dashboardSubtitle")}</p>
-      </div>
+  const totalUsers = usersResult.count || 0
+  const totalFrames = framesResult.count || 0
+  const totalProjects = projectsResult.count || 0
+  const totalExports = exportsResult.count || 0
+  const activeSubscriptions = activeSubsResult.count || 0
 
-      {/* Stats Cards */}
-      <StatsCards stats={stats} />
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart — Signups last 7 days */}
-        <div className="rounded-xl border p-6 bg-card">
-          <h3 className="text-sm font-semibold mb-4">{t("admin.signupsChart")}</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={barData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-              />
-              <YAxis
-                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
-              <Bar dataKey="count" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Pie Chart — Plan Distribution */}
-        <div className="rounded-xl border p-6 bg-card">
-          <h3 className="text-sm font-semibold mb-4">{t("admin.planDistribution")}</h3>
-          {pieData.length === 0 ? (
-            <div className="flex items-center justify-center h-[240px] text-muted-foreground text-sm">
-              {t("admin.noActiveSubscriptions")}
-            </div>
-          ) : (
-            <div className="flex items-center gap-6">
-              <ResponsiveContainer width="60%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-3">
-                {pieData.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
-                    />
-                    <span className="text-sm font-medium">{entry.name}</span>
-                    <span className="text-sm text-muted-foreground">({entry.value})</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+  const monthlyRevenue = (revenueResult.data || []).reduce(
+    (sum: number, p: any) => sum + (p.amount || 0),
+    0
   )
+
+  const planDistribution: Record<string, number> = {}
+  for (const sub of planDistributionResult.data || []) {
+    const planName = (sub.plan as any)?.name || "Inconnu"
+    planDistribution[planName] = (planDistribution[planName] || 0) + 1
+  }
+
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentProfiles } = await supabase
+    .from("profiles")
+    .select("created_at")
+    .gte("created_at", sevenDaysAgo)
+    .order("created_at", { ascending: true })
+
+  const signupsPerDay: Record<string, number> = {}
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+    const key = d.toISOString().split("T")[0]
+    signupsPerDay[key] = 0
+  }
+  for (const profile of recentProfiles || []) {
+    const key = profile.created_at.split("T")[0]
+    if (signupsPerDay[key] !== undefined) {
+      signupsPerDay[key]++
+    }
+  }
+
+  const signupsChart = Object.entries(signupsPerDay).map(([date, count]) => ({
+    date,
+    count,
+  }))
+
+  const stats = {
+    totalUsers,
+    totalFrames,
+    totalProjects,
+    totalExports,
+    activeSubscriptions,
+    monthlyRevenue,
+    planDistribution,
+    signupsChart,
+  }
+
+  return <AdminDashboardClient stats={stats} />
 }

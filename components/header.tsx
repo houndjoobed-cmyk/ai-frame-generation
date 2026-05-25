@@ -16,6 +16,7 @@ import { useState, useEffect } from "react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { useTheme } from "next-themes"
 import { NotificationBell } from "@/components/notifications/notification-bell"
+import { motion, AnimatePresence } from "framer-motion"
 
 export function Header() {
   const { data: session, status } = useSession()
@@ -39,10 +40,21 @@ export function Header() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
+            <motion.div 
+              whileHover={{ rotate: 90, scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center"
+            >
               <Frame className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-semibold tracking-tight hidden sm:block">Event Frames</span>
+            </motion.div>
+            <motion.span 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-xl font-semibold tracking-tight hidden sm:block"
+            >
+              Event Frames
+            </motion.span>
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
@@ -50,9 +62,12 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="relative text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group py-2"
               >
                 {item.name}
+                <motion.span
+                  className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300"
+                />
               </Link>
             ))}
           </div>
@@ -157,7 +172,7 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"
-                    onClick={() => signOut({ callbackUrl: "/" })}
+                    onClick={() => signOut()}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     {t("header.signOut")}
@@ -194,31 +209,50 @@ export function Header() {
       </nav>
 
       {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t">
-          <div className="space-y-1 px-4 py-3">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
-            {session && (
-              <Link
-                href="/editor"
-                className="block rounded-lg px-3 py-2 text-base font-medium text-primary hover:bg-muted"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t("header.createFrame")}
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t overflow-hidden"
+          >
+            <div className="space-y-1 px-4 py-3">
+              {navigation.map((item, i) => (
+                <motion.div
+                  key={item.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Link
+                    href={item.href}
+                    className="block rounded-lg px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                </motion.div>
+              ))}
+              {session && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navigation.length * 0.05 }}
+                >
+                  <Link
+                    href="/editor"
+                    className="block rounded-lg px-3 py-2 text-base font-medium text-primary hover:bg-muted"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {t("header.createFrame")}
+                  </Link>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

@@ -29,7 +29,7 @@ export function SettingsContent({
   initialSubscription,
   initialPayments,
 }: SettingsContentProps) {
-  const { data: session, update } = useSession()
+  const { data: session } = useSession()
   const router = useRouter()
   const { t, locale } = useI18n()
 
@@ -55,8 +55,7 @@ export function SettingsContent({
         throw new Error(data.error || "Update failed")
       }
 
-      // Update session
-      await update({ name })
+      // Session is updated automatically via the AuthProvider and Supabase event listener
 
       toast.success(t("settings.toast.updated") || "Profil mis à jour avec succès")
       router.refresh()

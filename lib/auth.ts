@@ -27,7 +27,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         const supabase = createAdminClient()
-        
+
         // Get user from next_auth schema
         const { data: user, error } = await supabase
           .schema("next_auth")
@@ -113,7 +113,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string
-        ;(session.user as any).role = token.role as string || "user"
+          ; (session.user as any).role = token.role as string || "user"
       }
       return session
     },

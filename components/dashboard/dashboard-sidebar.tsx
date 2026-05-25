@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { LayoutDashboard, FolderOpen, Heart, Settings, Plus, Frame, Bell, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n/i18n-context"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 
 export function DashboardSidebar() {
   const pathname = usePathname()

@@ -33,11 +33,10 @@ export async function GET() {
       exportsResult,
       activeSubsResult,
       revenueResult,
-      recentSignupsResult,
       planDistributionResult,
     ] = await Promise.all([
       // Total users
-      supabase.schema("next_auth").from("users").select("*", { count: "exact", head: true }),
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
       // Total frames
       supabase.from("frames").select("*", { count: "exact", head: true }),
       // Total projects
@@ -52,12 +51,6 @@ export async function GET() {
         .select("amount")
         .eq("status", "completed")
         .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
-      // Signups per day (last 7 days)
-      supabase
-        .schema("next_auth")
-        .from("users")
-        .select("id, email, name")
-        .gte("id", "00000000-0000-0000-0000-000000000000"), // All users - we'll process dates client-side
       // Subscription plan distribution
       supabase
         .from("user_subscriptions")

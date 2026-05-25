@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "@/components/auth/auth-provider"
 import { useRouter } from "next/navigation"
 import Script from "next/script"
 import { motion } from "framer-motion"

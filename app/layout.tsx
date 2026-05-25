@@ -7,12 +7,12 @@ import { I18nProvider } from '@/lib/i18n/i18n-context'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 })
 
-const spaceGrotesk = Space_Grotesk({ 
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-space-grotesk',
 })
