@@ -42,7 +42,7 @@ export default function CareersPage() {
           className="text-center mb-16"
         >
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl mb-4">
-            Rejoignez <span className="bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">Event Frames</span>
+            Rejoignez <span className="bg-linear-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">Event Frames</span>
           </h1>
           <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto">
             Nous construisons le futur de la création visuelle événementielle. Venez créer avec nous !

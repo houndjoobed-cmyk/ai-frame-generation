@@ -46,7 +46,7 @@ export default function BlogPage() {
           className="text-center mb-16"
         >
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl mb-4">
-            Notre <span className="bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">Blog</span>
+            Notre <span className="bg-linear-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">Blog</span>
           </h1>
           <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto">
             Retrouvez nos derniers articles de blog, astuces de design, tutoriels et nouveautés.

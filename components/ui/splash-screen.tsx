@@ -52,7 +52,7 @@ export function SplashScreen() {
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5, ease: "easeInOut" } }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black overflow-hidden select-none"
+          className="fixed inset-0 z-9999 flex items-center justify-center bg-black overflow-hidden select-none"
         >
           {/* Neon glowing halos in the background */}
           <div className="absolute top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full bg-rose-500/10 blur-[120px] pointer-events-none" />
@@ -67,7 +67,7 @@ export function SplashScreen() {
             className="w-full max-w-md mx-4 bg-zinc-950/40 backdrop-blur-xl border border-zinc-800/40 shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-2xl p-6 relative overflow-hidden"
           >
             {/* Subtle grid pattern overlay */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293708_1px,transparent_1px),linear-gradient(to_bottom,#1f293708_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none rounded-2xl" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293708_1px,transparent_1px),linear-gradient(to_bottom,#1f293708_1px,transparent_1px)] bg-size-[14px_24px] pointer-events-none rounded-2xl" />
 
             <div className="flex items-center gap-4 relative z-10">
               {/* Logo container */}
@@ -105,7 +105,7 @@ export function SplashScreen() {
               <div className="w-full h-2 bg-zinc-900/90 rounded-full border border-zinc-800/30 overflow-hidden shadow-inner">
                 {/* Animating progress bar fill */}
                 <div
-                  className="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-rose-400 shadow-[0_0_12px_rgba(244,39,94,0.5)] transition-all duration-75"
+                  className="h-full bg-linear-to-r from-rose-600 via-rose-500 to-rose-400 shadow-[0_0_12px_rgba(244,39,94,0.5)] transition-all duration-75"
                   style={{ width: `${progress}%` }}
                 />
               </div>

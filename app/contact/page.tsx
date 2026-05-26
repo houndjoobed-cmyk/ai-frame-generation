@@ -43,7 +43,7 @@ export default function ContactPage() {
           className="text-center mb-16"
         >
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl mb-4">
-            Contactez-<span className="bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">nous</span>
+            Contactez-<span className="bg-linear-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">nous</span>
           </h1>
           <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto">
             Une question, une suggestion ou besoin d'aide ? Envoyez-nous un message !
@@ -134,7 +134,7 @@ export default function ContactPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full gap-2 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-600/95 shadow-md" disabled={isSending}>
+                  <Button type="submit" className="w-full gap-2 bg-linear-to-r from-rose-600 to-rose-500 hover:from-rose-600/95 shadow-md" disabled={isSending}>
                     {isSending ? "Envoi en cours..." : "Envoyer le message"}
                     <Send className="w-4 h-4" />
                   </Button>

@@ -17,7 +17,7 @@ export default function AboutPage() {
           className="text-center mb-16"
         >
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl mb-4">
-            À Propos de <span className="bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">Event Frames</span>
+            À Propos de <span className="bg-linear-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">Event Frames</span>
           </h1>
           <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto">
             Nous donnons vie à vos souvenirs en concevant des cadres photo personnalisés et mémorables pour tous vos événements.
