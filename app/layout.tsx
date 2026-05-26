@@ -65,6 +65,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+import { SplashScreen } from '@/components/ui/splash-screen'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -81,6 +83,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <I18nProvider>
+              <SplashScreen />
               {children}
               <Toaster position="bottom-right" richColors />
             </I18nProvider>
