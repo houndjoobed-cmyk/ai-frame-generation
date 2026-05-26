@@ -18,6 +18,8 @@ import { useTheme } from "next-themes"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { motion, AnimatePresence } from "framer-motion"
 
+import Image from "next/image"
+
 export function Header() {
   const { data: session, status } = useSession()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -40,21 +42,14 @@ export function Header() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <motion.div 
-              whileHover={{ rotate: 90, scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center"
-            >
-              <Frame className="w-5 h-5 text-primary-foreground" />
-            </motion.div>
-            <motion.span 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-xl font-semibold tracking-tight hidden sm:block"
-            >
-              Event Frames
-            </motion.span>
+            <Image
+              src="/logo-full.png"
+              alt="Event Frames"
+              width={160}
+              height={40}
+              className="h-10 w-auto object-contain dark:invert-0"
+              priority
+            />
           </Link>
 
           <div className="hidden md:flex items-center gap-6">

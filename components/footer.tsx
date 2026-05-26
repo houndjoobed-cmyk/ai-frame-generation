@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Frame } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { motion } from "framer-motion"
+import Image from "next/image"
 
 export function Footer() {
   const { t } = useI18n()
@@ -39,13 +40,13 @@ export function Footer() {
             className="col-span-2 md:col-span-1"
           >
             <Link href="/" className="flex items-center gap-2 group">
-              <motion.div 
-                whileHover={{ rotate: 10, scale: 1.1 }}
-                className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center"
-              >
-                <Frame className="w-5 h-5 text-primary-foreground" />
-              </motion.div>
-              <span className="text-xl font-semibold tracking-tight">Event Frames</span>
+              <Image
+                src="/logo-full.png"
+                alt="Event Frames"
+                width={160}
+                height={40}
+                className="h-10 w-auto object-contain"
+              />
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               {t("footer.description")}

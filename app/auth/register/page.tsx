@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -79,10 +80,14 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="flex flex-col items-center mb-8">
             <Link href="/" className="flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                <Frame className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="text-2xl font-semibold tracking-tight">Event Frames</span>
+              <Image
+                src="/logo-full.png"
+                alt="Event Frames"
+                width={180}
+                height={45}
+                className="h-12 w-auto object-contain"
+                priority
+              />
             </Link>
           </div>
 
@@ -141,10 +146,14 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <Link href="/" className="flex items-center gap-2 mb-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Frame className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-semibold tracking-tight">Event Frames</span>
+            <Image
+              src="/logo-full.png"
+              alt="Event Frames"
+              width={180}
+              height={45}
+              className="h-12 w-auto object-contain"
+              priority
+            />
           </Link>
           <p className="text-muted-foreground">{t("auth.createDesc")}</p>
         </div>
