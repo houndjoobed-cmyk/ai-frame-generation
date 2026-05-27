@@ -38,6 +38,7 @@ interface EditorSidebarProps {
   setAiNegativePrompt: (p: string) => void
   isGenerating: boolean
   handleAIGenerate: () => void
+  className?: string
 }
 
 export function EditorSidebar({
@@ -61,12 +62,13 @@ export function EditorSidebar({
   aiNegativePrompt,
   setAiNegativePrompt,
   isGenerating,
-  handleAIGenerate
+  handleAIGenerate,
+  className
 }: EditorSidebarProps) {
   const { t } = useI18n()
 
   return (
-    <aside className="w-72 border-r bg-muted/30 flex flex-col">
+    <aside className={`w-full md:w-72 border-r bg-muted/30 flex flex-col ${className || ""}`}>
       <Tabs defaultValue="upload" className="flex-1 flex flex-col">
         <TabsList className="grid grid-cols-4 m-2">
           <TabsTrigger value="upload" className="text-xs">

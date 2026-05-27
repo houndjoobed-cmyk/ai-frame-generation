@@ -40,6 +40,7 @@ interface EditorPropertiesProps {
   saveState: () => void
   autoCropToFrame: (saveState: () => void, t: any) => void
   resetCanvas: (saveState: () => void, t: any) => void
+  className?: string
 }
 
 export function EditorProperties({
@@ -62,12 +63,13 @@ export function EditorProperties({
   CANVAS_SIZE,
   saveState,
   autoCropToFrame,
-  resetCanvas
+  resetCanvas,
+  className
 }: EditorPropertiesProps) {
   const { t } = useI18n()
 
   return (
-    <aside className="w-72 border-l bg-muted/30 flex flex-col">
+    <aside className={`w-full md:w-72 border-l bg-muted/30 flex flex-col ${className || ""}`}>
       <div className="p-4 border-b">
         <h3 className="font-semibold text-sm">{t("editor.properties")}</h3>
       </div>

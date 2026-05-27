@@ -33,7 +33,10 @@ import {
   Share2,
   Check,
   Copy,
-  Loader2
+  Loader2,
+  Layers,
+  Frame as FrameIcon,
+  Sliders
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
@@ -87,6 +90,7 @@ export function EditorCanvas() {
   const [projectName, setProjectName] = useState(t("editor.untitled"))
   const [isSaving, setIsSaving] = useState(false)
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [activeMobileTab, setActiveMobileTab] = useState<"sidebar" | "editor" | "properties">("editor")
   const [isSharing, setIsSharing] = useState(false)
   const [shareId, setShareId] = useState<string | null>(null)
   const [copiedShareLink, setCopiedShareLink] = useState(false)
@@ -282,6 +286,7 @@ export function EditorCanvas() {
       fabricRef.current.renderAll()
       saveState()
       toast.success(t("editor.toast.frameAdded"))
+      setActiveMobileTab("editor")
     } catch (err) {
       console.error("Frame loading failed:", err)
       toast.error(t("editor.toast.frameFailed"))
@@ -356,6 +361,7 @@ export function EditorCanvas() {
         fabricRef.current.renderAll()
         saveState()
         toast.success(t("editor.toast.photoAdded"))
+        setActiveMobileTab("editor")
       }
     }
     reader.readAsDataURL(file)
@@ -758,7 +764,10 @@ export function EditorCanvas() {
           addFrameToCanvas={addFrameToCanvas}
           textOptions={textOptions}
           setTextOptions={setTextOptions}
-          addText={addText}
+          addText={(options, t) => {
+            addText(options, t)
+            setActiveMobileTab("editor")
+          }}
           session={session}
           aiCredits={aiCredits}
           aiCreditsTotal={aiCreditsTotal}
@@ -770,9 +779,10 @@ export function EditorCanvas() {
           setAiNegativePrompt={setAiNegativePrompt}
           isGenerating={isGenerating}
           handleAIGenerate={handleAIGenerate}
+          className={activeMobileTab === "sidebar" ? "flex w-full" : "hidden md:flex"}
         />
 
-        <main className="flex-1 bg-muted/20 flex flex-col overflow-hidden relative">
+        <main className={`flex-1 bg-muted/20 flex flex-col overflow-hidden relative ${activeMobileTab === "editor" ? "flex" : "hidden md:flex"}`}>
           <EditorToolbar 
             canUndo={canUndo}
             canRedo={canRedo}
@@ -824,7 +834,39 @@ export function EditorCanvas() {
           saveState={saveState}
           autoCropToFrame={autoCropToFrame}
           resetCanvas={resetCanvas}
+          className={activeMobileTab === "properties" ? "flex w-full" : "hidden md:flex"}
         />
+      </div>
+
+      {/* Mobile Tab Bar */}
+      <div className="md:hidden h-16 border-t bg-card flex items-center justify-around px-4 shrink-0 z-50">
+        <button
+          onClick={() => setActiveMobileTab("sidebar")}
+          className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold h-full w-20 transition-colors ${
+            activeMobileTab === "sidebar" ? "text-rose-500" : "text-muted-foreground"
+          }`}
+        >
+          <Layers className="w-5 h-5" />
+          <span>Modèles</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab("editor")}
+          className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold h-full w-20 transition-colors ${
+            activeMobileTab === "editor" ? "text-rose-500" : "text-muted-foreground"
+          }`}
+        >
+          <FrameIcon className="w-5 h-5" />
+          <span>Éditeur</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab("properties")}
+          className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold h-full w-20 transition-colors ${
+            activeMobileTab === "properties" ? "text-rose-500" : "text-muted-foreground"
+          }`}
+        >
+          <Sliders className="w-5 h-5" />
+          <span>Ajuster</span>
+        </button>
       </div>
     </div>
   )
