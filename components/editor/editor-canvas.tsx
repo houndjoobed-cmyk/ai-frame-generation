@@ -662,28 +662,28 @@ export function EditorCanvas() {
     : frames.filter((f) => f.category?.slug === selectedCategory)
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="h-16 border-b flex items-center justify-between px-6 bg-card shrink-0">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
+    <div className="flex flex-col h-dvh w-full overflow-hidden bg-background">
+      <header className="h-16 border-b flex items-center justify-between px-3 sm:px-6 bg-card shrink-0 w-full overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 mr-2">
+          <Link href="/dashboard" className="text-muted-foreground hover:text-foreground shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <Input
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
-            className="w-64 font-semibold bg-transparent border-transparent hover:border-input focus:border-input"
+            className="w-28 sm:w-64 font-semibold bg-transparent border-transparent hover:border-input focus:border-input text-sm sm:text-base truncate"
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <Button variant="outline" size="sm" onClick={saveProject} disabled={isSaving}>
-            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            {t("editor.save")}
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 sm:mr-2" />}
+            <span className="hidden sm:inline">{t("editor.save")}</span>
           </Button>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" onClick={shareProject} disabled={isSharing}>
-                {isSharing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
-                Partager
+                {isSharing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 sm:mr-2" />}
+                <span className="hidden sm:inline">Partager</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -754,8 +754,8 @@ export function EditorCanvas() {
           <Dialog>
             <DialogTrigger asChild>
               <Button size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                {t("editor.export")}
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t("editor.export")}</span>
               </Button>
             </DialogTrigger>
             <DialogContent>

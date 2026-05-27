@@ -16,7 +16,7 @@ export default function EditorPage() {
 
 function EditorSkeleton() {
   return (
-    <div className="h-screen flex">
+    <div className="h-dvh w-full overflow-hidden flex">
       <div className="w-72 border-r bg-muted/30 p-4">
         <div className="h-8 w-32 bg-muted animate-pulse rounded-lg mb-6" />
         <div className="space-y-3">
