@@ -109,6 +109,9 @@ export function EditorCanvas() {
     isTrackingRef,
     canvasReady,
     zoom,
+    canvasWidth,
+    canvasHeight,
+    updateDimensions,
     enforceFrameProperties,
     handleZoom,
     resetCanvas,
@@ -159,6 +162,52 @@ export function EditorCanvas() {
     handleAIGenerate
   } = useAiGeneration(session, fabricRef, saveState, t, CANVAS_SIZE)
 
+  // Fit canvas to screen on mobile / initial load
+  useEffect(() => {
+    if (!canvasContainerRef.current) return
+
+    const handleResize = () => {
+      if (!fabricRef.current || !canvasContainerRef.current) return
+      
+      const parent = canvasContainerRef.current.parentElement?.parentElement
+      if (!parent) return
+
+      const parentWidth = parent.clientWidth
+      const currentWidth = fabricRef.current.width || CANVAS_SIZE
+
+      // Only auto-fit on mobile screens (width < 768px)
+      if (window.innerWidth < 768) {
+        const availableWidth = parentWidth - 32
+        const fitZoom = Math.min(100, Math.floor((availableWidth / currentWidth) * 100))
+        handleZoom(fitZoom)
+      }
+    }
+
+    if (canvasReady) {
+      const timer = setTimeout(handleResize, 150)
+      window.addEventListener("resize", handleResize)
+      return () => {
+        clearTimeout(timer)
+        window.removeEventListener("resize", handleResize)
+      }
+    }
+  }, [canvasReady, fabricRef, CANVAS_SIZE, handleZoom, canvasWidth])
+
+  // Automatically switch tabs when an object is selected on mobile
+  useEffect(() => {
+    if (selectedObject) {
+      setActiveMobileTab("properties")
+    }
+  }, [selectedObject])
+
+  const handleBackToEditor = useCallback(() => {
+    if (fabricRef.current) {
+      fabricRef.current.discardActiveObject()
+      fabricRef.current.renderAll()
+    }
+    setActiveMobileTab("editor")
+  }, [fabricRef])
+
   // Load existing project
   useEffect(() => {
     const projectId = searchParams.get("project")
@@ -186,7 +235,7 @@ export function EditorCanvas() {
             
             const width = project.canvas_width || (project.canvas_data as any).width || CANVAS_SIZE
             const height = project.canvas_height || (project.canvas_data as any).height || CANVAS_SIZE
-            canvas.setDimensions({ width, height })
+            updateDimensions(width, height)
 
             await canvas.loadFromJSON(project.canvas_data)
             enforceFrameProperties(canvas)
@@ -246,7 +295,7 @@ export function EditorCanvas() {
         newWidth = Math.round(CANVAS_SIZE * (frameWidth / frameHeight))
       }
 
-      fabricRef.current.setDimensions({ width: newWidth, height: newHeight })
+      updateDimensions(newWidth, newHeight)
 
       const offsetX = (newWidth - oldWidth) / 2
       const offsetY = (newHeight - oldHeight) / 2
@@ -801,15 +850,25 @@ export function EditorCanvas() {
             saveState={saveState}
           />
 
-          <div className="flex-1 overflow-auto flex items-center justify-center p-8">
-            <div
-              className="bg-white shadow-2xl rounded-lg overflow-hidden"
+          <div className="flex-1 overflow-auto flex items-center justify-center p-4 md:p-8 bg-muted/10 relative">
+            <div 
+              className="relative shadow-2xl rounded-lg overflow-hidden shrink-0 transition-all duration-200"
               style={{
-                transform: `scale(${zoom / 100})`,
-                transformOrigin: "center center",
+                width: `${canvasWidth * (zoom / 100)}px`,
+                height: `${canvasHeight * (zoom / 100)}px`,
               }}
-              ref={canvasContainerRef}
-            />
+            >
+              <div
+                className="bg-white"
+                style={{
+                  transform: `scale(${zoom / 100})`,
+                  transformOrigin: "top left",
+                  width: `${canvasWidth}px`,
+                  height: `${canvasHeight}px`,
+                }}
+                ref={canvasContainerRef}
+              />
+            </div>
           </div>
         </main>
 
@@ -835,6 +894,7 @@ export function EditorCanvas() {
           autoCropToFrame={autoCropToFrame}
           resetCanvas={resetCanvas}
           className={activeMobileTab === "properties" ? "flex w-full" : "hidden md:flex"}
+          onBackToEditor={handleBackToEditor}
         />
       </div>
 

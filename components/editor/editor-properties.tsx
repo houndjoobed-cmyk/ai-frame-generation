@@ -41,6 +41,7 @@ interface EditorPropertiesProps {
   autoCropToFrame: (saveState: () => void, t: any) => void
   resetCanvas: (saveState: () => void, t: any) => void
   className?: string
+  onBackToEditor?: () => void
 }
 
 export function EditorProperties({
@@ -64,14 +65,25 @@ export function EditorProperties({
   saveState,
   autoCropToFrame,
   resetCanvas,
-  className
+  className,
+  onBackToEditor
 }: EditorPropertiesProps) {
   const { t } = useI18n()
 
   return (
     <aside className={`w-full md:w-72 border-l bg-muted/30 flex flex-col ${className || ""}`}>
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex items-center justify-between">
         <h3 className="font-semibold text-sm">{t("editor.properties")}</h3>
+        {onBackToEditor && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden text-rose-500 font-semibold px-2 py-1 h-auto hover:bg-transparent"
+            onClick={onBackToEditor}
+          >
+            ✓ Valider
+          </Button>
+        )}
       </div>
 
       <ScrollArea className="flex-1">

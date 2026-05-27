@@ -8,6 +8,15 @@ export function useCanvas(CANVAS_SIZE: number) {
   const isTrackingRef = useRef(true)
   const [canvasReady, setCanvasReady] = useState(false)
   const [zoom, setZoom] = useState(100)
+  const [canvasWidth, setCanvasWidth] = useState(CANVAS_SIZE)
+  const [canvasHeight, setCanvasHeight] = useState(CANVAS_SIZE)
+
+  const updateDimensions = useCallback((width: number, height: number) => {
+    if (!fabricRef.current) return
+    fabricRef.current.setDimensions({ width, height })
+    setCanvasWidth(width)
+    setCanvasHeight(height)
+  }, [])
 
   const enforceFrameProperties = useCallback((canvas: fabric.Canvas) => {
     const objects = canvas.getObjects()
@@ -44,8 +53,25 @@ export function useCanvas(CANVAS_SIZE: number) {
       preserveObjectStacking: true,
     })
 
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768
+
+    // Configure selection styles globally in Fabric for touch friendliness
+    fabric.FabricObject.prototype.set({
+      transparentCorners: false,
+      cornerColor: "#EA9010", // Orange accent color
+      cornerStrokeColor: "#ffffff",
+      borderColor: "#9efd38", // Brand green color
+      cornerSize: isMobile ? 22 : 12,
+      touchCornerSize: isMobile ? 32 : 16,
+      cornerStyle: "circle", // Circular Figma-like controls
+      borderScaleFactor: 2,
+      padding: 6,
+    })
+
     fabricRef.current = canvas
     setCanvasReady(true)
+    setCanvasWidth(CANVAS_SIZE)
+    setCanvasHeight(CANVAS_SIZE)
 
     return () => {
       setCanvasReady(false)
@@ -59,7 +85,8 @@ export function useCanvas(CANVAS_SIZE: number) {
   const handleZoom = useCallback((value: number) => {
     if (!fabricRef.current) return
     setZoom(value)
-    fabricRef.current.setZoom(value / 100)
+    // We do NOT zoom the Fabric canvas internally because we scale the DOM element using CSS.
+    // This maintains stable coordinates, avoids blur, and makes object selections perfectly aligned.
     fabricRef.current.renderAll()
   }, [])
 
@@ -67,10 +94,11 @@ export function useCanvas(CANVAS_SIZE: number) {
     if (!fabricRef.current) return
     fabricRef.current.clear()
     fabricRef.current.backgroundColor = "#ffffff"
+    updateDimensions(CANVAS_SIZE, CANVAS_SIZE)
     fabricRef.current.renderAll()
     saveState()
     toast.success(t("editor.toast.canvasCleared"))
-  }, [])
+  }, [CANVAS_SIZE, updateDimensions])
 
   const autoCropToFrame = useCallback((saveState: () => void, t: any) => {
     if (!fabricRef.current) return
@@ -101,7 +129,7 @@ export function useCanvas(CANVAS_SIZE: number) {
       newWidth = Math.round(CANVAS_SIZE * (frameWidth / frameHeight))
     }
 
-    fabricRef.current.setDimensions({ width: newWidth, height: newHeight })
+    updateDimensions(newWidth, newHeight)
 
     frameObj.set({
       left: newWidth / 2,
@@ -126,17 +154,17 @@ export function useCanvas(CANVAS_SIZE: number) {
     fabricRef.current.renderAll()
     saveState()
     toast.success(t("editor.toast.croppedToFrame") || "Canevas recadré automatiquement sur le cadre !")
-  }, [CANVAS_SIZE])
+  }, [CANVAS_SIZE, updateDimensions])
 
   const addText = useCallback((textOptions: any, t: any) => {
     if (!fabricRef.current) return
 
-    const canvasWidth = fabricRef.current.width || CANVAS_SIZE
-    const canvasHeight = fabricRef.current.height || CANVAS_SIZE
+    const currentWidth = fabricRef.current.width || CANVAS_SIZE
+    const currentHeight = fabricRef.current.height || CANVAS_SIZE
 
     const text = new fabric.IText(textOptions.text, {
-      left: canvasWidth / 2,
-      top: canvasHeight / 2,
+      left: currentWidth / 2,
+      top: currentHeight / 2,
       originX: "center",
       originY: "center",
       fontSize: textOptions.fontSize,
@@ -156,6 +184,9 @@ export function useCanvas(CANVAS_SIZE: number) {
     isTrackingRef,
     canvasReady,
     zoom,
+    canvasWidth,
+    canvasHeight,
+    updateDimensions,
     enforceFrameProperties,
     handleZoom,
     resetCanvas,

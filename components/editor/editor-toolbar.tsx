@@ -85,8 +85,8 @@ export function EditorToolbar({
           title="Bring Forward"
           className="hover:bg-gray-100"
         >
-          <Layers className="w-4 h-4 mr-2" />
-          Up
+          <Layers className="w-4 h-4 mr-0 sm:mr-2" />
+          <span className="hidden sm:inline">Up</span>
         </Button>
         <Button
           variant="outline"
@@ -96,8 +96,8 @@ export function EditorToolbar({
           title="Send Backward"
           className="hover:bg-gray-100"
         >
-          <Layers className="w-4 h-4 mr-2 rotate-180" />
-          Down
+          <Layers className="w-4 h-4 mr-0 sm:mr-2 rotate-180" />
+          <span className="hidden sm:inline">Down</span>
         </Button>
         <Separator orientation="vertical" className="h-6 mx-2" />
         <Button
@@ -128,8 +128,8 @@ export function EditorToolbar({
           title="Crop to Frame"
           className="hover:bg-gray-100 text-orange-600 border-orange-200 hover:text-orange-700"
         >
-          <Crop className="w-4 h-4 mr-2" />
-          Crop Canvas to Frame
+          <Crop className="w-4 h-4 mr-0 sm:mr-2" />
+          <span className="hidden sm:inline">Crop Canvas to Frame</span>
         </Button>
         <Separator orientation="vertical" className="h-6 mx-2" />
         <Button
@@ -154,7 +154,7 @@ export function EditorToolbar({
         </Button>
       </div>
 
-      <div className="flex items-center gap-4 min-w-[200px]">
+      <div className="hidden md:flex items-center gap-4 min-w-[200px]">
         <ZoomOut className="w-4 h-4 text-gray-500" />
         <Slider
           value={[zoom]}
