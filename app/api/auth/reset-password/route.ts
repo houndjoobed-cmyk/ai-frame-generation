@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { rateLimit } from "@/lib/rate-limit"
+import { resetPasswordSchema } from "@/lib/validations"
 
 export async function POST(req: Request) {
   try {
@@ -14,21 +15,18 @@ export async function POST(req: Request) {
       )
     }
 
-    const { token, password } = await req.json()
+    const body = await req.json()
+    const parsed = resetPasswordSchema.safeParse(body)
 
-    if (!token || !password) {
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
       return NextResponse.json(
-        { error: "Token and password are required" },
+        { error: firstError },
         { status: 400 }
       )
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      )
-    }
+    const { token, password } = parsed.data
 
     const supabase = createAdminClient()
 

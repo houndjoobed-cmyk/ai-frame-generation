@@ -1,23 +1,25 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SessionProvider } from 'next-auth/react'
 import { Toaster } from 'sonner'
 import { I18nProvider } from '@/lib/i18n/i18n-context'
 import { ThemeProvider } from '@/components/theme-provider'
+import { SplashScreen } from '@/components/ui/splash-screen'
 import './globals.css'
 
-const inter = Inter({
+const geistSans = Geist({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-sans',
 })
 
-const spaceGrotesk = Space_Grotesk({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  variable: '--font-space-grotesk',
+  variable: '--font-mono',
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://ai-frame-generation.vercel.app'),
   title: {
     default: 'Event Frames - Create Beautiful Photo Frames',
     template: '%s | Event Frames',
@@ -65,7 +67,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-import { SplashScreen } from '@/components/ui/splash-screen'
+
 
 export default function RootLayout({
   children,
@@ -73,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} bg-background`} suppressHydrationWarning>
+    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} bg-background`} suppressHydrationWarning>
       <body className="font-sans antialiased min-h-screen">
         <SessionProvider>
           <ThemeProvider

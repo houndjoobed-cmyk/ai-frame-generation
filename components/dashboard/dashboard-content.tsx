@@ -6,11 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FolderOpen, Heart, Download, Plus, ArrowRight } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
+interface RecentProject {
+  id: string
+  name: string
+  thumbnail_url: string | null
+  updated_at: string
+}
+
 interface DashboardContentProps {
   userName: string
   projectCount: number
   likesCount: number
-  recentProjects: any[]
+  recentProjects: RecentProject[]
 }
 
 export function DashboardContent({

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { sendPasswordResetEmail } from "@/lib/mail"
 import { rateLimit } from "@/lib/rate-limit"
+import { forgotPasswordSchema } from "@/lib/validations"
 
 export async function POST(req: Request) {
   try {
@@ -14,14 +15,17 @@ export async function POST(req: Request) {
       )
     }
 
-    const { email } = await req.json()
+    const body = await req.json()
+    const parsed = forgotPasswordSchema.safeParse(body)
 
-    if (!email) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Email is required" },
+        { error: "Adresse e-mail invalide" },
         { status: 400 }
       )
     }
+
+    const { email } = parsed.data
 
     const supabase = createAdminClient()
 

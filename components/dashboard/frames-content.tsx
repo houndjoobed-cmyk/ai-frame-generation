@@ -16,13 +16,27 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
+interface FrameItem {
+  id: string
+  name: string
+  description: string | null
+  image_url: string
+  thumbnail_url: string | null
+  is_public: boolean
+  is_premium: boolean
+  like_count: number
+  download_count: number
+  created_at: string
+  category?: { name: string } | null
+}
+
 interface FramesContentProps {
-  frames: any[]
+  frames: FrameItem[]
 }
 
 export function FramesContent({ frames: initialFrames }: FramesContentProps) {
   const { t } = useI18n()
-  const [frames, setFrames] = useState<any[]>(initialFrames)
+  const [frames, setFrames] = useState<FrameItem[]>(initialFrames)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   
   const supabase = createClient()

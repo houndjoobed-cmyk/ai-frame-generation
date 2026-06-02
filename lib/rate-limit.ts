@@ -5,26 +5,35 @@ interface RateLimitInfo {
   resetTime: number
 }
 
-const rateLimitMap = new Map<string, RateLimitInfo>()
+// Declare global type properly to avoid @ts-ignore
+declare global {
+  // eslint-disable-next-line no-var
+  var __rateLimitMap: Map<string, RateLimitInfo> | undefined
+  // eslint-disable-next-line no-var
+  var __rateLimitCleanupInterval: ReturnType<typeof setInterval> | undefined
+}
+
+// Use globalThis to persist across hot reloads in dev
+const rateLimitMap: Map<string, RateLimitInfo> =
+  globalThis.__rateLimitMap ?? (globalThis.__rateLimitMap = new Map())
 
 // Clear expired entries periodically to prevent memory leaks (every 5 minutes)
-if (typeof globalThis !== "undefined") {
-  // @ts-ignore
-  if (!globalThis.rateLimitCleanupInterval) {
-    // @ts-ignore
-    globalThis.rateLimitCleanupInterval = setInterval(() => {
-      const now = Date.now()
-      for (const [key, record] of rateLimitMap.entries()) {
-        if (now > record.resetTime) {
-          rateLimitMap.delete(key)
-        }
+if (!globalThis.__rateLimitCleanupInterval) {
+  globalThis.__rateLimitCleanupInterval = setInterval(() => {
+    const now = Date.now()
+    for (const [key, record] of rateLimitMap.entries()) {
+      if (now > record.resetTime) {
+        rateLimitMap.delete(key)
       }
-    }, 5 * 60 * 1000)
-  }
+    }
+  }, 5 * 60 * 1000)
 }
 
 /**
  * Checks if a request exceeds the specified limit.
+ * 
+ * ⚠️ Note: This uses an in-memory Map which resets on serverless cold starts.
+ * For production at scale, migrate to Upstash Redis or Vercel KV.
  * 
  * @param key Unique identifier for the operation (e.g., "register")
  * @param limit Max requests allowed in the window
@@ -35,7 +44,7 @@ export async function rateLimit(key: string, limit: number, windowMs: number) {
   const headersList = await headers()
   
   // Resolve client IP address securely
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0] || headersList.get("x-real-ip") || "127.0.0.1"
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || headersList.get("x-real-ip") || "127.0.0.1"
   
   const finalKey = `${key}:${ip}`
   const now = Date.now()

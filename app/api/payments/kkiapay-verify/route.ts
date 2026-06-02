@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
+interface VerifyMetadata {
+  userId: string
+  planId: string
+  isAnnual?: boolean
+}
+
 export async function POST(req: Request) {
   try {
     const { transactionId } = await req.json()
@@ -14,7 +20,6 @@ export async function POST(req: Request) {
 
     // Verify transaction status with Kkiapay API
     // We send request to sandbox or live depending on keys
-    const kkiapayUrl = `https://api.kkiapay.me/api/v1/transactions/status/${transactionId}`
     const publicKey = process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY
     const privateKey = process.env.KKIAPAY_PRIVATE_KEY
     const secretKey = process.env.KKIAPAY_SECRET_KEY
@@ -27,15 +32,20 @@ export async function POST(req: Request) {
       )
     }
 
+    const isSandbox = privateKey.startsWith("tpk_")
+    const baseUrl = isSandbox ? "https://api-sandbox.kkiapay.me" : "https://api.kkiapay.me"
+    const kkiapayUrl = `${baseUrl}/api/v1/transactions/status`
+
     const response = await fetch(kkiapayUrl, {
-      method: "GET",
+      method: "POST",
       headers: {
         "Accept": "application/json",
-        "X-API-KEY": publicKey,
-        "X-PRIVATE-KEY": privateKey,
-        "X-SECRET-KEY": secretKey,
-        "Authorization": `Bearer ${privateKey}` // standard Authorization fallback header
-      }
+        "Content-Type": "application/json",
+        "x-api-key": publicKey,
+        "x-private-key": privateKey,
+        "x-secret-key": secretKey
+      },
+      body: JSON.stringify({ transactionId })
     })
 
     if (!response.ok) {
@@ -48,7 +58,9 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json()
-    console.log("Kkiapay response data:", data)
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Kkiapay response data:", data)
+    }
 
     // Check status
     if (data.status !== "SUCCESS") {
@@ -59,10 +71,18 @@ export async function POST(req: Request) {
     }
 
     // Extract transaction metadata
-    let metadata: any = null
+    let metadata: VerifyMetadata | null = null
     try {
-      if (data.data) {
-        metadata = JSON.parse(data.data)
+      const rawMetadata = data.state || data.data
+      if (rawMetadata) {
+        const parsed = typeof rawMetadata === "string" ? JSON.parse(rawMetadata) : rawMetadata
+        if (typeof parsed.userId === "string" && typeof parsed.planId === "string") {
+          metadata = {
+            userId: parsed.userId,
+            planId: parsed.planId,
+            isAnnual: parsed.isAnnual === true,
+          }
+        }
       }
     } catch (e) {
       console.error("Failed to parse transaction data metadata:", e)

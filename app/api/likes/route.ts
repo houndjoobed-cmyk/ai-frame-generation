@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { likeFrameSchema } from "@/lib/validations"
+import { z } from "zod"
 
 export async function POST(req: Request) {
   try {
@@ -13,14 +15,18 @@ export async function POST(req: Request) {
       )
     }
 
-    const { frameId } = await req.json()
-    if (!frameId) {
+    const body = await req.json()
+    const parsed = likeFrameSchema.safeParse(body)
+
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "ID du cadre manquant ou invalide."
       return NextResponse.json(
-        { success: false, error: "ID du cadre manquant." },
+        { success: false, error: firstError },
         { status: 400 }
       )
     }
 
+    const { frameId } = parsed.data
     const supabase = createAdminClient()
     const { data, error } = await supabase
       .from("frame_likes")
@@ -68,9 +74,9 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url)
     const frameId = searchParams.get("frameId")
 
-    if (!frameId) {
+    if (!frameId || !z.string().uuid().safeParse(frameId).success) {
       return NextResponse.json(
-        { success: false, error: "ID du cadre manquant." },
+        { success: false, error: "ID du cadre manquant ou invalide." },
         { status: 400 }
       )
     }

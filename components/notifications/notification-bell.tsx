@@ -11,6 +11,9 @@ import {
 import { Bell, Check, CheckCheck, Info, AlertTriangle, Zap, CreditCard, Settings2 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+import { useSession } from "next-auth/react"
+import { toast } from "sonner"
 
 interface Notification {
   id: string
@@ -40,6 +43,7 @@ const categoryIcons: Record<string, typeof Info> = {
 }
 
 export function NotificationBell() {
+  const { data: session } = useSession()
   const { t } = useI18n()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -60,10 +64,54 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications()
-    // Poll every 60 seconds
-    const interval = setInterval(fetchNotifications, 60000)
-    return () => clearInterval(interval)
-  }, [fetchNotifications])
+
+    if (!session?.user?.id) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`notifications-user-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        (payload: any) => {
+          if (payload.eventType === "INSERT") {
+            const newNotif = payload.new as Notification
+            setNotifications((prev) => [newNotif, ...prev.slice(0, 4)])
+            setUnreadCount((prev) => prev + 1)
+            
+            // Trigger dynamic rich toast notification
+            toast(newNotif.title, {
+              description: newNotif.message,
+              action: newNotif.action_url ? {
+                label: "Voir",
+                onClick: () => {
+                  window.location.href = newNotif.action_url!
+                }
+              } : undefined
+            })
+          } else if (payload.eventType === "UPDATE") {
+            const updatedNotif = payload.new as Notification
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n))
+            )
+            fetchNotifications()
+          } else if (payload.eventType === "DELETE") {
+            setNotifications((prev) => prev.filter((n) => n.id !== payload.old.id))
+            fetchNotifications()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [session, fetchNotifications])
 
   async function handleMarkAllRead() {
     try {

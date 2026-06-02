@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { updateNotificationSchema } from "@/lib/validations"
+import { z } from "zod"
 
 export async function GET(req: Request) {
   try {
@@ -10,8 +12,8 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const page = parseInt(searchParams.get("page") || "1")
-    const limit = parseInt(searchParams.get("limit") || "20")
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20")))
     const category = searchParams.get("category") || ""
     const unreadOnly = searchParams.get("unread") === "true"
 
@@ -71,7 +73,15 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const { notificationId, markAllRead } = await req.json()
+    const body = await req.json()
+    const parsed = updateNotificationSchema.safeParse(body)
+
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
+
+    const { notificationId, markAllRead } = parsed.data
     const supabase = createAdminClient()
 
     if (markAllRead) {
@@ -123,8 +133,8 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url)
     const notificationId = searchParams.get("id")
 
-    if (!notificationId) {
-      return NextResponse.json({ error: "ID de notification requis" }, { status: 400 })
+    if (!notificationId || !z.string().uuid().safeParse(notificationId).success) {
+      return NextResponse.json({ error: "ID de notification invalide ou requis" }, { status: 400 })
     }
 
     const supabase = createAdminClient()

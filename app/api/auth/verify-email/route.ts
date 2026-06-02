@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { rateLimit } from "@/lib/rate-limit"
+import { verifyEmailSchema } from "@/lib/validations"
 
 export async function POST(req: Request) {
   try {
@@ -13,14 +14,17 @@ export async function POST(req: Request) {
       )
     }
 
-    const { token, email } = await req.json()
+    const body = await req.json()
+    const parsed = verifyEmailSchema.safeParse(body)
 
-    if (!token || !email) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Token and email are required" },
+        { error: "Token et email sont requis" },
         { status: 400 }
       )
     }
+
+    const { token, email } = parsed.data
 
     const supabase = createAdminClient()
 

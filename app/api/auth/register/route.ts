@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { sendVerificationEmail } from "@/lib/mail"
 import { rateLimit } from "@/lib/rate-limit"
+import { registerSchema } from "@/lib/validations"
 
 export async function POST(request: Request) {
   try {
@@ -15,21 +16,18 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, password } = await request.json()
+    const body = await request.json()
+    const parsed = registerSchema.safeParse(body)
 
-    if (!email || !password) {
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: firstError },
         { status: 400 }
       )
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      )
-    }
+    const { name, email, password } = parsed.data
 
     const supabase = createAdminClient()
 

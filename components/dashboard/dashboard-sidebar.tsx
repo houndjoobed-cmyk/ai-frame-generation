@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, FolderOpen, Heart, Settings, Plus, Frame, Bell, Shield } from "lucide-react"
+import { LayoutDashboard, FolderOpen, Heart, Settings, Plus, Frame, Bell, Shield, Paintbrush } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { useSession, signOut } from "next-auth/react"
@@ -19,6 +19,7 @@ export function DashboardSidebar() {
     { name: t("dashboard.myProjects"), href: "/dashboard/projects", icon: FolderOpen },
     { name: t("dashboard.myFrames"), href: "/dashboard/frames", icon: Frame },
     { name: t("dashboard.createFrame"), href: "/dashboard/frames/create", icon: Plus },
+    { name: t("dashboard.customOrders"), href: "/dashboard/custom-orders", icon: Paintbrush },
     { name: t("dashboard.likedFrames"), href: "/dashboard/liked", icon: Heart },
     { name: t("notifications.title"), href: "/dashboard/notifications", icon: Bell },
     { name: t("header.settings"), href: "/dashboard/settings", icon: Settings },

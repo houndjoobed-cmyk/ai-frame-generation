@@ -144,6 +144,44 @@ export default function PricingPage() {
           toast.error("Erreur de communication avec le serveur de paiement.")
         }
       }
+
+      // Handle mobile redirect callback
+      const searchParams = new URLSearchParams(window.location.search)
+      const transactionId = searchParams.get("transaction_id")
+      if (transactionId) {
+        const verifyPaymentRedirect = async () => {
+          const toastId = toast.loading("Activation de votre abonnement...")
+          try {
+            const res = await fetch("/api/payments/kkiapay-verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                transactionId,
+              }),
+            })
+
+            const data = await res.json()
+            toast.dismiss(toastId)
+
+            if (res.ok && data.success) {
+              toast.success("Abonnement activé avec succès !")
+              router.push("/dashboard")
+            } else {
+              toast.error(data.error || "Erreur de validation du paiement.")
+            }
+          } catch (err) {
+            toast.dismiss(toastId)
+            console.error("Redirect verification error:", err)
+            toast.error("Erreur de communication avec le serveur de paiement.")
+          } finally {
+            // Clean URL query parameters
+            const url = new URL(window.location.href)
+            url.searchParams.delete("transaction_id")
+            window.history.replaceState({}, document.title, url.pathname + url.search)
+          }
+        }
+        verifyPaymentRedirect()
+      }
     }
   }, [router])
 
@@ -165,11 +203,13 @@ export default function PricingPage() {
 
     // Trigger Kkiapay widget
     if (typeof window !== "undefined" && window.openKkiapayWidget) {
+      const callbackUrl = window.location.origin + "/pricing"
+
       window.openKkiapayWidget({
         amount: amount,
         position: "center",
         // Test/Sandbox API key for local dev. Use ENV variable in prod
-        key: process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY || "dd9f1b2b801a61ad34f2d72f10b741df0dbb6e22",
+        key: process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY || "547e1af056a111f1bcb3fd035618d464",
         sandbox: true,
         data: JSON.stringify({
           userId: (session?.user as any)?.id,
@@ -178,7 +218,7 @@ export default function PricingPage() {
         }),
         email: (session?.user as any)?.email || "",
         phone: "",
-        callback: "onKkiapaySuccess",
+        callback: callbackUrl,
       })
     } else {
       toast.error("Le module de paiement Kkiapay n'est pas chargé.")

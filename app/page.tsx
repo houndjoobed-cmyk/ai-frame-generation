@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Header } from "@/components/header"
@@ -19,6 +20,30 @@ import {
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { LandingPreviewSlider } from "@/components/landing-preview-slider"
+import { createClient } from "@/lib/supabase/client"
+
+const getCategoryColor = (slug: string) => {
+  switch (slug) {
+    case "anniversaire":
+    case "birthday":
+      return "bg-pink-500/10 text-pink-400 border-pink-500/20"
+    case "mariage":
+    case "wedding":
+      return "bg-rose-500/10 text-rose-400 border-rose-500/20"
+    case "festival":
+    case "holiday":
+      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+    case "universite":
+    case "graduation":
+      return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+    case "business":
+    case "conference":
+    case "corporate":
+      return "bg-slate-500/10 text-slate-400 border-slate-500/20"
+    default:
+      return "bg-orange-500/10 text-orange-400 border-orange-500/20"
+  }
+}
 
 export default function HomePage() {
   const { t } = useI18n()
@@ -56,14 +81,63 @@ export default function HomePage() {
     },
   ]
 
-  const categories = [
+  const [dbCategories, setDbCategories] = useState<any[]>([
     { name: t("cat.birthday"), slug: "birthday", count: 45, color: "bg-pink-500/10 text-pink-400 border-pink-500/20" },
     { name: t("cat.wedding"), slug: "wedding", count: 32, color: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
     { name: t("cat.holiday"), slug: "holiday", count: 28, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
     { name: t("cat.graduation"), slug: "graduation", count: 24, color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
     { name: t("cat.corporate"), slug: "corporate", count: 18, color: "bg-slate-500/10 text-slate-400 border-slate-500/20" },
     { name: t("cat.social"), slug: "social media", count: 36, color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
-  ]
+  ])
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from("categories")
+          .select(`
+            id,
+            name,
+            slug,
+            color,
+            frames:frames(count)
+          `)
+          .eq("is_active", true)
+          .eq("frames.is_active", true)
+          .order("sort_order", { ascending: true })
+
+        if (error) throw error
+
+        if (data && data.length > 0) {
+          const mapped = data.map((cat: any) => {
+            let frameCount = 0
+            if (cat.frames) {
+              if (Array.isArray(cat.frames) && cat.frames[0]) {
+                frameCount = cat.frames[0].count || 0
+              } else if (typeof cat.frames === "object" && "count" in cat.frames) {
+                frameCount = (cat.frames as any).count || 0
+              }
+            }
+
+            const translationKey = `cat.${cat.slug}`
+            const translatedName = t(translationKey) === translationKey ? cat.name : t(translationKey)
+
+            return {
+              name: translatedName,
+              slug: cat.slug,
+              count: frameCount,
+              color: getCategoryColor(cat.slug)
+            }
+          })
+          setDbCategories(mapped.slice(0, 6))
+        }
+      } catch (err) {
+        console.error("Error fetching dynamic categories:", err)
+      }
+    }
+    fetchCategories()
+  }, [t])
 
   const testimonials = [
     {
@@ -107,8 +181,8 @@ export default function HomePage() {
         <section className="relative pt-28 pb-20 sm:pt-36 sm:pb-24 flex flex-col items-center justify-center">
           {/* Neon Radial Rotating Background Glows */}
           <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
-          <div className="absolute -top-40 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen pointer-events-none animate-pulse duration-[8000ms]" />
-          <div className="absolute top-20 right-1/4 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px] mix-blend-screen pointer-events-none animate-pulse duration-[6000ms]" />
+          <div className="absolute -top-40 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen pointer-events-none animate-pulse duration-8000" />
+          <div className="absolute top-20 right-1/4 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px] mix-blend-screen pointer-events-none animate-pulse duration-6000" />
 
           <div className="relative mx-auto max-w-7xl px-4 text-center z-10">
             <motion.div
@@ -129,7 +203,7 @@ export default function HomePage() {
               transition={{ duration: 0.8, delay: 0.1 }}
             >
               {t("home.title1")}{" "}
-              <span className="bg-gradient-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(var(--primary),0.15)]">
+              <span className="bg-linear-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(var(--primary),0.15)]">
                 {t("home.title2")}
               </span>
             </motion.h1>
@@ -150,7 +224,7 @@ export default function HomePage() {
               transition={{ duration: 0.8, delay: 0.4 }}
             >
               <Link href="/editor">
-                <Button size="lg" className="h-13 px-8 rounded-full font-semibold text-base gap-2 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/95 hover:to-purple-600/95 shadow-[0_8px_30px_rgb(var(--primary)/0.3)] hover:shadow-[0_8px_30px_rgb(var(--primary)/0.5)] hover:scale-[1.02] active:scale-95 transition-all duration-300">
+                <Button size="lg" className="h-13 px-8 rounded-full font-semibold text-base gap-2 bg-linear-to-r from-primary to-purple-600 hover:from-primary/95 hover:to-purple-600/95 shadow-[0_8px_30px_rgb(var(--primary)/0.3)] hover:shadow-[0_8px_30px_rgb(var(--primary)/0.5)] hover:scale-[1.02] active:scale-95 transition-all duration-300">
                   {t("home.startCreating")}
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -199,7 +273,7 @@ export default function HomePage() {
               whileInView="animate"
               viewport={{ once: true, margin: "-100px" }}
             >
-              {categories.map((category) => (
+              {dbCategories.map((category) => (
                 <motion.div
                   key={category.name}
                   variants={fadeInUp}
@@ -331,11 +405,11 @@ export default function HomePage() {
                   transition={{ duration: 0.6, delay: index * 0.2 }}
                 >
                   {index < 2 && (
-                    <div className="hidden lg:block absolute top-16 left-[70%] w-[60%] h-0.5 bg-gradient-to-r from-primary/30 to-transparent z-0" />
+                    <div className="hidden lg:block absolute top-16 left-[70%] w-[60%] h-0.5 bg-linear-to-r from-primary/30 to-transparent z-0" />
                   )}
                   <Card className="relative bg-card/60 backdrop-blur-md rounded-3xl p-8 border border-border/60 hover:border-primary/20 transition-all duration-300 hover:shadow-xl">
                     <CardContent className="p-0">
-                      <span className="text-6xl font-black bg-gradient-to-br from-primary/30 to-purple-500/10 bg-clip-text text-transparent">{item.step}</span>
+                      <span className="text-6xl font-black bg-linear-to-br from-primary/30 to-purple-500/10 bg-clip-text text-transparent">{item.step}</span>
                       <h3 className="mt-4 text-2xl font-bold">{item.title}</h3>
                       <p className="mt-3 text-muted-foreground font-light leading-relaxed">{item.description}</p>
                     </CardContent>

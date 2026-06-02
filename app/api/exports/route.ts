@@ -1,17 +1,33 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { createExportSchema } from "@/lib/validations"
 
 export async function POST(req: Request) {
   try {
     const session = await auth()
     const supabase = createAdminClient()
     
-    const { projectId, width, height, fileFormat, exportPreset } = await req.json()
+    const body = await req.json()
+    const parsed = createExportSchema.safeParse(body)
+
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
+      return NextResponse.json(
+        { success: false, error: firstError },
+        { status: 400 }
+      )
+    }
+
+    const { projectId, width, height, fileFormat, exportPreset } = parsed.data
 
     // 1. Identify User and Active Subscription
     let userId = session?.user?.id
-    let plan: any = null
+    let plan: {
+      max_exports_per_month: number | null
+      has_hd_export: boolean
+      name?: string
+    } | null = null
     let maxExports = 5 // Free/Starter default
     let hasHdExport = false
 
@@ -32,9 +48,20 @@ export async function POST(req: Request) {
       )
 
       if (isSubActive && sub && sub.plan) {
-        plan = sub.plan
-        maxExports = plan.max_exports_per_month ?? 9999
-        hasHdExport = plan.has_hd_export ?? false
+        const planArray = sub.plan
+        const singlePlan = Array.isArray(planArray)
+          ? planArray[0]
+          : (planArray as { max_exports_per_month: number | null; has_hd_export: boolean; name?: string } | null)
+        
+        if (singlePlan) {
+          plan = {
+            max_exports_per_month: singlePlan.max_exports_per_month,
+            has_hd_export: singlePlan.has_hd_export,
+            name: singlePlan.name,
+          }
+          maxExports = plan.max_exports_per_month ?? 9999
+          hasHdExport = plan.has_hd_export ?? false
+        }
       }
     } else {
       // If guest user, standard resolution only (max 1080px), limit to 3 exports

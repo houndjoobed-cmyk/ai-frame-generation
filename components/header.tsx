@@ -156,7 +156,7 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   {/* Admin link — only visible for admin/super_admin */}
-                  {((session.user as any)?.role === "admin" || (session.user as any)?.role === "super_admin") && (
+                  {(session.user?.role === "admin" || session.user?.role === "super_admin") && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin" className="cursor-pointer">
                         <Shield className="mr-2 h-4 w-4" />

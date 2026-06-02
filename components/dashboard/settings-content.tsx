@@ -14,14 +14,48 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Loader2, User, CreditCard, Receipt, Settings as SettingsIcon, Check, X, ShieldAlert, Calendar } from "lucide-react"
+import { Loader2, User, CreditCard, Receipt, Settings as SettingsIcon, Check, X, ShieldAlert, Calendar, Download } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import Link from "next/link"
 
+interface PaymentRecord {
+  id: string
+  user_id: string
+  amount: number
+  currency: string
+  provider: string
+  provider_reference: string | null
+  status: string
+  description: string | null
+  created_at: string
+}
+
+interface SubscriptionPlan {
+  name: string
+  slug: string
+  price_monthly: number
+  price_yearly: number
+}
+
+interface SubscriptionRecord {
+  id: string
+  status: string
+  current_period_start: string
+  current_period_end: string | null
+  cancelled_at: string | null
+  plan: SubscriptionPlan | null
+}
+
+interface ProfileRecord {
+  display_name: string | null
+  bio: string | null
+  avatar_url: string | null
+}
+
 interface SettingsContentProps {
-  initialProfile: any
-  initialSubscription: any
-  initialPayments: any[]
+  initialProfile: ProfileRecord | null
+  initialSubscription: SubscriptionRecord | null
+  initialPayments: PaymentRecord[]
 }
 
 export function SettingsContent({
@@ -38,6 +72,10 @@ export function SettingsContent({
   const [isProfileLoading, setIsProfileLoading] = useState(false)
   const [isCancelLoading, setIsCancelLoading] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+
+  const handleDownloadInvoice = (paymentId: string) => {
+    window.open(`/api/payments/invoice?id=${paymentId}`, "_blank")
+  }
 
   async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -59,8 +97,9 @@ export function SettingsContent({
 
       toast.success(t("settings.toast.updated") || "Profil mis à jour avec succès")
       router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || t("settings.toast.updateFailed") || "Échec de la mise à jour du profil")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      toast.error(message || t("settings.toast.updateFailed") || "Échec de la mise à jour du profil")
     } finally {
       setIsProfileLoading(false)
     }
@@ -82,8 +121,9 @@ export function SettingsContent({
       toast.success("Votre abonnement a été résilié avec succès.")
       setShowCancelConfirm(false)
       router.refresh()
-    } catch (err: any) {
-      toast.error(err.message || "Impossible de résilier l'abonnement.")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      toast.error(message || "Impossible de résilier l'abonnement.")
     } finally {
       setIsCancelLoading(false)
     }
@@ -432,6 +472,7 @@ export function SettingsContent({
                         <TableHead className="font-bold">{t("settings.billing.table.amount") || "Montant"}</TableHead>
                         <TableHead className="font-bold">{t("settings.billing.table.ref") || "Référence"}</TableHead>
                         <TableHead className="font-bold">{t("settings.billing.table.status") || "Statut"}</TableHead>
+                        <TableHead className="font-bold text-right">{t("settings.billing.table.invoice") || "Facture"}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -461,6 +502,22 @@ export function SettingsContent({
                             >
                               {payment.status === "completed" ? "Succès" : payment.status === "failed" ? "Échec" : payment.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {payment.status === "completed" ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 rounded-full text-muted-foreground hover:text-primary hover:bg-muted"
+                                onClick={() => handleDownloadInvoice(payment.id)}
+                                title={t("settings.billing.table.invoice") || "Facture"}
+                              >
+                                <Download className="w-4 h-4" />
+                                <span className="sr-only">Download</span>
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground font-light">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

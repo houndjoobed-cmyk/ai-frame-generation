@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react"
 import * as fabric from "fabric"
 import { toast } from "sonner"
+import { createClient } from "@/lib/supabase/client"
 
 export function useAiGeneration(
   session: any,
@@ -35,8 +36,32 @@ export function useAiGeneration(
   }, [session])
 
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchCredits()
+    if (!session?.user?.id) return
+
+    fetchCredits()
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`ai-credits-user-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "ai_credits",
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        (payload: any) => {
+          console.log("Realtime AI credits update:", payload)
+          const newCredits = payload.new as any
+          setAiCredits(newCredits.total_credits - newCredits.used_credits)
+          setAiCreditsTotal(newCredits.total_credits)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [session, fetchCredits])
 

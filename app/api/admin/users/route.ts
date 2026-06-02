@@ -2,6 +2,26 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 
+interface AuthUser {
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
+  emailVerified: string | null
+}
+
+interface UserProfile {
+  user_id: string
+  role: string
+  display_name: string | null
+  created_at: string
+}
+
+interface UserSubscription {
+  user_id: string
+  plan: { name: string; slug: string } | null
+}
+
 async function isAdmin(userId: string): Promise<boolean> {
   const supabase = createAdminClient()
   const { data: profile } = await supabase
@@ -48,7 +68,7 @@ export async function GET(req: Request) {
     }
 
     // Fetch profiles for these users to get roles
-    const userIds = (users || []).map((u: any) => u.id)
+    const userIds = (users || []).map((u: AuthUser) => u.id)
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, role, display_name, created_at")
@@ -62,10 +82,22 @@ export async function GET(req: Request) {
       .in("user_id", userIds)
 
     // Merge data
-    const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]))
-    const subMap = new Map((subscriptions || []).map((s: any) => [s.user_id, s]))
+    const profileMap = new Map((profiles || []).map((p: UserProfile) => [p.user_id, p]))
+    const subMap = new Map((subscriptions || []).map((s) => {
+      const planArray = s.plan
+      const plan = Array.isArray(planArray)
+        ? planArray[0]
+        : (planArray as { name: string; slug: string } | null)
+      return [
+        s.user_id,
+        {
+          user_id: s.user_id,
+          plan: plan ? { name: plan.name, slug: plan.slug } : null,
+        } as UserSubscription,
+      ]
+    }))
 
-    const enrichedUsers = (users || []).map((u: any) => {
+    const enrichedUsers = (users || []).map((u: AuthUser) => {
       const profile = profileMap.get(u.id)
       const sub = subMap.get(u.id)
       return {
@@ -77,8 +109,8 @@ export async function GET(req: Request) {
         role: profile?.role || "user",
         displayName: profile?.display_name,
         createdAt: profile?.created_at,
-        plan: (sub?.plan as any)?.name || "Gratuit",
-        planSlug: (sub?.plan as any)?.slug || "free",
+        plan: sub?.plan?.name || "Gratuit",
+        planSlug: sub?.plan?.slug || "free",
       }
     })
 

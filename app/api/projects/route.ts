@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { createProjectSchema, updateProjectSchema } from "@/lib/validations"
+import { z } from "zod"
 
 export async function POST(req: Request) {
   try {
@@ -13,18 +15,29 @@ export async function POST(req: Request) {
       )
     }
 
+    const body = await req.json()
+    const parsed = createProjectSchema.safeParse(body)
+
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
+      return NextResponse.json(
+        { success: false, error: firstError },
+        { status: 400 }
+      )
+    }
+
+    const { name, canvasData, thumbnailUrl, canvasWidth, canvasHeight } = parsed.data
     const supabase = createAdminClient()
-    const { name, canvasData, thumbnailUrl, canvasWidth, canvasHeight } = await req.json()
 
     const { data, error } = await supabase
       .from("projects")
       .insert({
         user_id: session.user.id,
-        name: name || "Projet sans nom",
+        name,
         canvas_data: canvasData,
         thumbnail_url: thumbnailUrl,
-        canvas_width: canvasWidth || 800,
-        canvas_height: canvasHeight || 800,
+        canvas_width: canvasWidth,
+        canvas_height: canvasHeight,
         status: "draft"
       })
       .select()
@@ -63,9 +76,9 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
-    if (!id) {
+    if (!id || !z.string().uuid().safeParse(id).success) {
       return NextResponse.json(
-        { success: false, error: "ID du projet manquant." },
+        { success: false, error: "ID du projet invalide ou manquant." },
         { status: 400 }
       )
     }
@@ -120,9 +133,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
-    if (!id) {
+    if (!id || !z.string().uuid().safeParse(id).success) {
       return NextResponse.json(
-        { success: false, error: "ID du projet manquant." },
+        { success: false, error: "ID du projet invalide ou manquant." },
         { status: 400 }
       )
     }
@@ -166,21 +179,24 @@ export async function PUT(req: Request) {
       )
     }
 
-    const { id, name, canvasData, thumbnailUrl, canvasWidth, canvasHeight } = await req.json()
+    const body = await req.json()
+    const parsed = updateProjectSchema.safeParse(body)
 
-    if (!id) {
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
       return NextResponse.json(
-        { success: false, error: "ID du projet manquant." },
+        { success: false, error: firstError },
         { status: 400 }
       )
     }
 
+    const { id, name, canvasData, thumbnailUrl, canvasWidth, canvasHeight } = parsed.data
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
       .from("projects")
       .update({
-        name: name || "Projet sans nom",
+        name,
         canvas_data: canvasData,
         thumbnail_url: thumbnailUrl,
         canvas_width: canvasWidth,

@@ -13,8 +13,16 @@ import {
 import { DeleteProjectButton } from "@/components/dashboard/delete-project-button"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
+interface ProjectItem {
+  id: string
+  name: string
+  thumbnail_url: string | null
+  updated_at: string
+  status: string
+}
+
 interface ProjectsContentProps {
-  projects: any[]
+  projects: ProjectItem[]
 }
 
 export function ProjectsContent({ projects }: ProjectsContentProps) {

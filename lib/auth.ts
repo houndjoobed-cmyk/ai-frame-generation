@@ -14,6 +14,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // ⚠️ SECURITY DECISION: Allows linking a Google account to an existing
+      // credentials account with the same email. This is intentional for UX —
+      // users who registered with email can later sign in with Google seamlessly.
+      // Risk: If an attacker controls a Google account with a victim's email,
+      // they could access the victim's account. Mitigated by Google's own
+      // email verification and the fact our user base is trusted (event organizers).
       allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
@@ -114,7 +120,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string
-          ; (session.user as any).role = token.role as string || "user"
+        session.user.role = (token.role as string) || "user"
       }
       return session
     },

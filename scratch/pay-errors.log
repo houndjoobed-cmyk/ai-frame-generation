@@ -1,0 +1,15 @@
+[2026-06-01T09:07:57.203Z] Incoming Request Body: {"transactionId":"OTvWSx_1M"}
+[2026-06-01T09:07:57.642Z] Transaction: OTvWSx_1M
+Status: 404
+Body: Not Found
+Keys: Pub=547e... Priv=tpk_... Sec=tsk_...
+Url: https://api.kkiapay.me/api/v1/transactions/status/OTvWSx_1M
+
+[2026-06-01T09:09:54.518Z] Incoming Request Body: {"transactionId":"V_040hHtP"}
+[2026-06-01T09:09:54.923Z] Transaction: V_040hHtP
+Status: 404
+Body: Not Found
+Keys: Pub=547e... Priv=tpk_... Sec=tsk_...
+Url: https://api.kkiapay.me/api/v1/transactions/status/V_040hHtP
+
+[2026-06-01T13:06:02.714Z] Incoming Request Body: {"transactionId":"_MVMsZh5-"}

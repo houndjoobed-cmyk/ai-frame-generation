@@ -1,10 +1,41 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
+interface KkiapayWebhookPayload {
+  transactionId?: string
+  ref?: string
+  status?: string
+  amount?: number
+  currency?: string
+  data?: string
+}
+
+interface WebhookMetadata {
+  userId: string
+  planId: string
+  isAnnual?: boolean
+}
+
+interface SubscriptionPlanRow {
+  id: string
+  name: string
+  slug: string
+  price_monthly: number
+  price_yearly: number
+  currency: string
+  max_ai_credits_per_month: number | null
+  max_exports_per_month: number | null
+  has_hd_export: boolean
+}
+
 export async function POST(req: Request) {
   try {
-    const payload = await req.json()
-    console.log("Kkiapay webhook received payload:", payload)
+    const payload: KkiapayWebhookPayload = await req.json()
+
+    // Only log webhook payloads in development (never expose in production)
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Kkiapay webhook received payload:", payload)
+    }
 
     const transactionId = payload.transactionId || payload.ref
     const status = payload.status
@@ -14,7 +45,9 @@ export async function POST(req: Request) {
     }
 
     if (status !== "SUCCESS") {
-      console.log(`Kkiapay webhook ignored for non-success status: ${status}`)
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`Kkiapay webhook ignored for non-success status: ${status}`)
+      }
       return NextResponse.json({ success: true, message: "Webhook acknowledged" })
     }
 
@@ -27,10 +60,17 @@ export async function POST(req: Request) {
     }
 
     // Extract transaction metadata
-    let metadata: any = null
+    let metadata: WebhookMetadata | null = null
     try {
       if (payload.data) {
-        metadata = JSON.parse(payload.data)
+        const parsed = JSON.parse(payload.data) as Record<string, unknown>
+        if (typeof parsed.userId === "string" && typeof parsed.planId === "string") {
+          metadata = {
+            userId: parsed.userId,
+            planId: parsed.planId,
+            isAnnual: parsed.isAnnual === true,
+          }
+        }
       }
     } catch (e) {
       console.error("Failed to parse webhook metadata payload:", e)

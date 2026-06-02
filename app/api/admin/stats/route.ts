@@ -66,14 +66,18 @@ export async function GET() {
 
     // Calculate monthly revenue
     const monthlyRevenue = (revenueResult.data || []).reduce(
-      (sum: number, p: any) => sum + (p.amount || 0),
+      (sum: number, p: { amount: number | null }) => sum + (p.amount || 0),
       0
     )
 
     // Plan distribution
     const planDistribution: Record<string, number> = {}
     for (const sub of planDistributionResult.data || []) {
-      const planName = (sub.plan as any)?.name || "Inconnu"
+      const planArray = sub.plan
+      const plan = Array.isArray(planArray)
+        ? planArray[0]
+        : (planArray as { name: string; slug: string } | null)
+      const planName = plan?.name || "Inconnu"
       planDistribution[planName] = (planDistribution[planName] || 0) + 1
     }
 

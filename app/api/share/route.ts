@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { randomUUID } from "crypto"
-
+import { shareSchema } from "@/lib/validations"
 
 export async function POST(req: Request) {
   try {
@@ -15,15 +15,18 @@ export async function POST(req: Request) {
       )
     }
 
-    const { base64Image, projectId, exportPreset, width, height } = await req.json()
+    const body = await req.json()
+    const parsed = shareSchema.safeParse(body)
 
-    if (!base64Image) {
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
       return NextResponse.json(
-        { success: false, error: "Image manquante." },
+        { success: false, error: firstError },
         { status: 400 }
       )
     }
 
+    const { base64Image, projectId, exportPreset, width, height } = parsed.data
     const supabase = createAdminClient()
 
     // 1. Ensure the public 'shares' bucket exists

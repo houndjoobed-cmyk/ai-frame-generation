@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { aiGenerateSchema } from "@/lib/validations"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
   try {
+    // Rate Limiting: max 10 AI generation requests per 5 mins per IP
+    const limitResult = await rateLimit("ai:generate", 10, 5 * 60 * 1000)
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Trop de requêtes de génération. Veuillez réessayer dans quelques minutes." },
+        { status: 429 }
+      )
+    }
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -12,15 +23,18 @@ export async function POST(req: Request) {
       )
     }
 
-    const { prompt, negativePrompt, style } = await req.json()
+    const body = await req.json()
+    const parsed = aiGenerateSchema.safeParse(body)
 
-    if (!prompt) {
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
       return NextResponse.json(
-        { success: false, error: "Le prompt est requis." },
+        { success: false, error: firstError },
         { status: 400 }
       )
     }
 
+    const { prompt, negativePrompt, style } = parsed.data
     const supabase = createAdminClient()
 
     // 1. Atomically verify and deduct user credit (prevents race conditions)

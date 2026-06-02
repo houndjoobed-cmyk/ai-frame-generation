@@ -420,7 +420,7 @@ export function EditorCanvas() {
     }
   }, [fabricRef, saveState, t])
 
-  const exportCanvas = useCallback((format: "png" | "jpeg" = "png") => {
+  const exportCanvas = useCallback(async (format: "png" | "jpeg" | "svg" | "pdf" = "png") => {
     if (!fabricRef.current) return
     const currentWidth = fabricRef.current.width || CANVAS_SIZE
     const currentHeight = fabricRef.current.height || CANVAS_SIZE
@@ -438,20 +438,57 @@ export function EditorCanvas() {
     fabricRef.current.setZoom(1)
 
     try {
-      const dataUrl = fabricRef.current.toDataURL({
-        format,
-        quality: 1,
-        multiplier,
-      })
+      if (format === "svg") {
+        const svgString = fabricRef.current.toSVG()
+        const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" })
+        const url = URL.createObjectURL(blob)
+        
+        const link = document.createElement("a")
+        link.download = `${projectName.replace(/\s+/g, "-").toLowerCase()}.svg`
+        link.href = url
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        toast.success(t("editor.toast.exportSuccess"))
+      } else if (format === "pdf") {
+        // High quality PNG rasterized and embedded in a PDF
+        const dataUrl = fabricRef.current.toDataURL({
+          format: "png",
+          quality: 1,
+          multiplier,
+        })
 
-      const link = document.createElement("a")
-      link.download = `${projectName.replace(/\s+/g, "-").toLowerCase()}.${format}`
-      link.href = dataUrl
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      toast.success(t("editor.toast.exportSuccess"))
+        const orientation = currentWidth >= currentHeight ? "landscape" : "portrait"
+        const { jsPDF } = await import("jspdf")
+        
+        const exportW = currentWidth * multiplier
+        const exportH = currentHeight * multiplier
+
+        const pdf = new jsPDF({
+          orientation,
+          unit: "px",
+          format: [exportW, exportH],
+        })
+
+        pdf.addImage(dataUrl, "PNG", 0, 0, exportW, exportH)
+        pdf.save(`${projectName.replace(/\s+/g, "-").toLowerCase()}.pdf`)
+        toast.success(t("editor.toast.exportSuccess"))
+      } else {
+        const dataUrl = fabricRef.current.toDataURL({
+          format,
+          quality: 1,
+          multiplier,
+        })
+
+        const link = document.createElement("a")
+        link.download = `${projectName.replace(/\s+/g, "-").toLowerCase()}.${format}`
+        link.href = dataUrl
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        toast.success(t("editor.toast.exportSuccess"))
+      }
     } catch (err) {
       console.error("Export error:", err)
       toast.error(t("editor.toast.exportError"))
@@ -788,12 +825,18 @@ export function EditorCanvas() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex gap-2">
-                  <Button className="flex-1" onClick={() => exportCanvas("png")}>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={() => exportCanvas("png")}>
                     {t("editor.downloadPng")}
                   </Button>
-                  <Button className="flex-1" variant="outline" onClick={() => exportCanvas("jpeg")}>
+                  <Button variant="outline" onClick={() => exportCanvas("jpeg")}>
                     {t("editor.downloadJpeg")}
+                  </Button>
+                  <Button variant="outline" onClick={() => exportCanvas("svg")}>
+                    {t("editor.downloadSvg")}
+                  </Button>
+                  <Button variant="outline" onClick={() => exportCanvas("pdf")}>
+                    {t("editor.downloadPdf")}
                   </Button>
                 </div>
               </div>

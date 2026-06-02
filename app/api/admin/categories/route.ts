@@ -44,7 +44,7 @@ export async function GET() {
       }
     }
 
-    const enriched = (categories || []).map((c: any) => ({
+    const enriched = (categories || []).map((c: { id: string; [key: string]: unknown }) => ({
       ...c,
       frame_count: countMap[c.id] || 0,
     }))
@@ -113,7 +113,7 @@ export async function PUT(req: Request) {
     }
 
     const supabase = createAdminClient()
-    const updateData: Record<string, any> = {}
+    const updateData: Record<string, string | number | boolean | null> = {}
     if (name !== undefined) updateData.name = name
     if (slug !== undefined) updateData.slug = slug
     if (description !== undefined) updateData.description = description

@@ -40,6 +40,16 @@ export const translations = {
     "cat.graduation": "Graduation",
     "cat.corporate": "Corporate",
     "cat.social": "Social Media",
+    "cat.anniversaire": "Birthday",
+    "cat.eglise": "Church",
+    "cat.mariage": "Wedding",
+    "cat.ia": "AI Generation",
+    "cat.gaming": "Gaming",
+    "cat.conference": "Conference",
+    "cat.universite": "University",
+    "cat.business": "Business",
+    "cat.festival": "Festival & Events",
+    "cat.sport": "Sport",
 
     // Home - Features
     "home.featTitle": "Everything You Need",
@@ -145,6 +155,8 @@ export const translations = {
     "editor.exportSize": "Export Size",
     "editor.downloadPng": "Download PNG",
     "editor.downloadJpeg": "Download JPEG",
+    "editor.downloadSvg": "Download SVG",
+    "editor.downloadPdf": "Download PDF",
     "editor.uploadPhoto": "Upload Photo",
     "editor.clickUpload": "Click or drag to upload",
     "editor.fileTypes": "JPG, PNG, WEBP",
@@ -236,6 +248,9 @@ export const translations = {
     "dashboard.accountSettingsDesc": "Manage profile",
     "dashboard.myFrames": "My Frames",
     "dashboard.createFrame": "Create a Frame",
+    "dashboard.customOrders": "Order Custom Frame",
+    "dashboard.customOrdersDesc": "Order bespoke frame from graphic designer",
+
 
     // Dashboard - Projects
     "projects.title": "My Projects",
@@ -300,6 +315,7 @@ export const translations = {
     "settings.billing.table.amount": "Amount",
     "settings.billing.table.ref": "Reference",
     "settings.billing.table.status": "Status",
+    "settings.billing.table.invoice": "Invoice",
 
     // Auth
     "auth.welcomeBack": "Welcome back",
@@ -399,6 +415,8 @@ export const translations = {
     "admin.users": "Users",
     "admin.frames": "Frames",
     "admin.categories": "Categories",
+    "admin.customOrders": "Custom Orders",
+
     "admin.backToDashboard": "Back to Dashboard",
     "admin.dashboardTitle": "Admin Dashboard",
     "admin.dashboardSubtitle": "Overview of your platform's key metrics",
@@ -499,6 +517,16 @@ export const translations = {
     "cat.graduation": "Diplôme",
     "cat.corporate": "Entreprise",
     "cat.social": "Réseaux Sociaux",
+    "cat.anniversaire": "Anniversaire",
+    "cat.eglise": "Église",
+    "cat.mariage": "Mariage",
+    "cat.ia": "Génération IA",
+    "cat.gaming": "Gaming",
+    "cat.conference": "Conférence",
+    "cat.universite": "Université",
+    "cat.business": "Business",
+    "cat.festival": "Festival & Concerts",
+    "cat.sport": "Sport",
 
     // Home - Features
     "home.featTitle": "Tout Ce Dont Vous Avez Besoin",
@@ -604,6 +632,8 @@ export const translations = {
     "editor.exportSize": "Taille d'exportation",
     "editor.downloadPng": "Télécharger en PNG",
     "editor.downloadJpeg": "Télécharger en JPEG",
+    "editor.downloadSvg": "Télécharger en SVG",
+    "editor.downloadPdf": "Télécharger en PDF",
     "editor.uploadPhoto": "Importer une photo",
     "editor.clickUpload": "Cliquez ou glissez pour importer",
     "editor.fileTypes": "JPG, PNG, WEBP",
@@ -695,6 +725,9 @@ export const translations = {
     "dashboard.accountSettingsDesc": "Gérer le profil",
     "dashboard.myFrames": "Mes Frames",
     "dashboard.createFrame": "Créer un Frame",
+    "dashboard.customOrders": "Commander un Cadre",
+    "dashboard.customOrdersDesc": "Commander un cadre sur-mesure chez notre graphiste",
+
 
     // Dashboard - Projects
     "projects.title": "Mes Projets",
@@ -759,6 +792,7 @@ export const translations = {
     "settings.billing.table.amount": "Montant",
     "settings.billing.table.ref": "Référence",
     "settings.billing.table.status": "Statut",
+    "settings.billing.table.invoice": "Facture",
 
     // Auth
     "auth.welcomeBack": "Bon retour",
@@ -858,6 +892,8 @@ export const translations = {
     "admin.users": "Utilisateurs",
     "admin.frames": "Frames",
     "admin.categories": "Catégories",
+    "admin.customOrders": "Commandes sur-mesure",
+
     "admin.backToDashboard": "Retour au tableau de bord",
     "admin.dashboardTitle": "Tableau de bord Admin",
     "admin.dashboardSubtitle": "Vue d'ensemble des métriques clés de la plateforme",

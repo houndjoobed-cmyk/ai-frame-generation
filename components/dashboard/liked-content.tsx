@@ -6,9 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Heart, ArrowRight } from "lucide-react"
 import { FrameCard } from "@/components/gallery/frame-card"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import type { Frame } from "@/lib/types"
+
+interface LikedFrame {
+  id: string
+  frame: Frame | null
+}
 
 interface LikedContentProps {
-  likedFrames: any[]
+  likedFrames: LikedFrame[]
 }
 
 export function LikedContent({ likedFrames }: LikedContentProps) {
@@ -29,10 +35,9 @@ export function LikedContent({ likedFrames }: LikedContentProps) {
             const frame = like.frame
             if (!frame) return null
 
-            const mappedFrame = {
+            const mappedFrame: Frame = {
               ...frame,
               is_liked: true,
-              likes_count: frame.like_count || 0
             }
 
             return (

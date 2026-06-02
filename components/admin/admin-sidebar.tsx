@@ -10,6 +10,7 @@ import {
   FolderTree,
   ArrowLeft,
   Shield,
+  Paintbrush,
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
@@ -22,6 +23,7 @@ export function AdminSidebar() {
     { name: t("admin.users"), href: "/admin/users", icon: Users },
     { name: t("admin.frames"), href: "/admin/frames", icon: Image },
     { name: t("admin.categories"), href: "/admin/categories", icon: FolderTree },
+    { name: t("admin.customOrders"), href: "/admin/custom-orders", icon: Paintbrush },
   ]
 
   return (

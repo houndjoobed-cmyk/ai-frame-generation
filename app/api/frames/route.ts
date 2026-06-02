@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { randomUUID } from "crypto"
+import { createFrameSchema } from "@/lib/validations"
 
 // GET: Fetch frames created by the currently logged-in user
 export async function GET(req: Request) {
@@ -56,14 +57,18 @@ export async function POST(req: Request) {
       )
     }
 
-    const { name, description, categoryId, tags, base64Image, isPublic, isActive } = await req.json()
+    const body = await req.json()
+    const parsed = createFrameSchema.safeParse(body)
 
-    if (!name || !base64Image) {
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Données invalides"
       return NextResponse.json(
-        { success: false, error: "Le nom et l'image du cadre sont requis." },
+        { success: false, error: firstError },
         { status: 400 }
       )
     }
+
+    const { name, description, categoryId, tags, base64Image, isPublic, isActive } = parsed.data
 
     const supabase = createAdminClient()
 
