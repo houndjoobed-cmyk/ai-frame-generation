@@ -22,14 +22,31 @@ export default function ContactPage() {
     e.preventDefault()
     setIsSending(true)
 
-    // Simulate sending email
-    setTimeout(() => {
-      setIsSending(false)
-      toast.success("Votre message a été envoyé avec succès ! Nous vous répondrons bientôt.")
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, message }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Une erreur est survenue lors de l'envoi de votre message.")
+      }
+
+      toast.success(data.message || "Votre message a été envoyé avec succès ! Nous vous répondrons bientôt.")
       setName("")
       setEmail("")
       setMessage("")
-    }, 1000)
+    } catch (error: unknown) {
+      const errMessage = error instanceof Error ? error.message : String(error)
+      toast.error(errMessage || "Impossible d'envoyer le message. Veuillez réessayer plus tard.")
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -66,7 +83,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Email</p>
-                  <p className="text-sm font-medium">support@eventframes.com</p>
+                  <p className="text-sm font-medium">supporteventframes@gmail.com</p>
                 </div>
               </div>
 
@@ -76,7 +93,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Téléphone</p>
-                  <p className="text-sm font-medium">+229 01 00 00 00 00</p>
+                  <p className="text-sm font-medium">+229 01 56 55 07 62</p>
                 </div>
               </div>
 

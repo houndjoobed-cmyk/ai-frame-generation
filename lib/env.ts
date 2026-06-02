@@ -25,9 +25,9 @@ const serverEnvSchema = z.object({
     .string()
     .url("NEXTAUTH_URL must be a valid URL")
     .optional(),
-  NEXTAUTH_SECRET: z
+  AUTH_SECRET: z
     .string()
-    .min(1, "NEXTAUTH_SECRET is required"),
+    .min(1, "AUTH_SECRET is required"),
 
   // ─── Google OAuth ───
   GOOGLE_CLIENT_ID: z.string().optional(),

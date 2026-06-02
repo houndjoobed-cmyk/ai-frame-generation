@@ -30,6 +30,18 @@ export function LandingPreviewSlider() {
     setIsDragging(false)
   }
 
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const updateWidth = () => {
+      setContainerWidth(containerRef.current?.getBoundingClientRect().width || 0)
+    }
+    updateWidth()
+    window.addEventListener("resize", updateWidth)
+    return () => window.removeEventListener("resize", updateWidth)
+  }, [])
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener("mousemove", handleMouseMove)
@@ -80,7 +92,10 @@ export function LandingPreviewSlider() {
           className="absolute inset-y-0 left-0 overflow-hidden"
           style={{ width: `${sliderPosition}%` }}
         >
-          <div className="absolute inset-y-0 left-0 w-[800px] sm:w-[900px] md:w-[1200px] aspect-video">
+          <div 
+            className="absolute inset-y-0 left-0 aspect-video"
+            style={{ width: containerWidth ? `${containerWidth}px` : "100%" }}
+          >
             <img 
               src={basePhoto} 
               alt="After event framing"

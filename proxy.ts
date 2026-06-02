@@ -45,8 +45,8 @@ export default auth((req) => {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.kkiapay.me https://va.vercel-scripts.com",
       // Styles: self + inline (Tailwind, Radix)
       "style-src 'self' 'unsafe-inline'",
-      // Images: self + data URIs + blob + Supabase storage + Google avatars
-      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://lh3.googleusercontent.com",
+      // Images: self + data URIs + blob + Supabase storage + Google avatars + Unsplash
+      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://lh3.googleusercontent.com https://images.unsplash.com",
       // Fonts: self + data URIs
       "font-src 'self' data:",
       // API connections: self + Supabase + Replicate + Brevo + Resend + KkiaPay + Vercel
