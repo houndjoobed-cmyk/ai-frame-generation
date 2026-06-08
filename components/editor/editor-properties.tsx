@@ -71,14 +71,14 @@ export function EditorProperties({
   const { t } = useI18n()
 
   return (
-    <aside className={`w-full md:w-72 border-l bg-muted/30 flex flex-col ${className || ""}`}>
+    <aside className={`w-full lg:w-72 border-l bg-muted/30 flex flex-col ${className || ""}`}>
       <div className="p-4 border-b flex items-center justify-between">
         <h3 className="font-semibold text-sm">{t("editor.properties")}</h3>
         {onBackToEditor && (
           <Button
             variant="ghost"
             size="sm"
-            className="md:hidden text-rose-500 font-semibold px-2 py-1 h-auto hover:bg-transparent"
+            className="lg:hidden text-rose-500 font-semibold px-2 py-1 h-auto hover:bg-transparent"
             onClick={onBackToEditor}
           >
             ✓ Valider

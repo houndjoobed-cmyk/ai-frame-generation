@@ -154,7 +154,7 @@ export function EditorToolbar({
         </Button>
       </div>
 
-      <div className="hidden md:flex items-center gap-4 min-w-[200px]">
+      <div className="hidden lg:flex items-center gap-4 min-w-[200px]">
         <ZoomOut className="w-4 h-4 text-gray-500" />
         <Slider
           value={[zoom]}

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -9,9 +10,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Frame, Menu, X, User, Settings, LogOut, LayoutDashboard, Globe, Sun, Moon, Shield } from "lucide-react"
+import { Frame, Menu, X, User, Settings, LogOut, LayoutDashboard, Globe, Sun, Moon, Shield, FolderOpen, Heart, Plus, Bell, Paintbrush } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { useTheme } from "next-themes"
@@ -26,10 +31,34 @@ export function Header() {
   const { locale, setLocale, t } = useI18n()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const isDashboardOrAdmin = pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin")
+  const userRole = (session?.user as any)?.role
+  const showAdminLink = userRole === "admin" || userRole === "super_admin"
+
+  const dashboardNavigation = [
+    { name: t("header.dashboard"), href: "/dashboard", icon: LayoutDashboard },
+    { name: t("dashboard.myProjects"), href: "/dashboard/projects", icon: FolderOpen },
+    { name: t("dashboard.myFrames"), href: "/dashboard/frames", icon: Frame },
+    { name: t("dashboard.createFrame"), href: "/dashboard/frames/create", icon: Plus },
+    { name: t("dashboard.customOrders"), href: "/dashboard/custom-orders", icon: Paintbrush },
+    { name: t("dashboard.likedFrames"), href: "/dashboard/liked", icon: Heart },
+    { name: t("notifications.title"), href: "/dashboard/notifications", icon: Bell },
+    { name: t("header.settings"), href: "/dashboard/settings", icon: Settings },
+  ]
+
+  if (showAdminLink) {
+    dashboardNavigation.push({
+      name: t("admin.title") || "Administration",
+      href: "/admin",
+      icon: Shield,
+    })
+  }
 
   const navigation = [
     { name: t("nav.gallery"), href: "/gallery" },
@@ -72,44 +101,47 @@ export function Header() {
           {/* Notification Bell — only for logged-in users */}
           {session && <NotificationBell />}
 
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 px-0 text-muted-foreground hover:text-foreground cursor-pointer"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
-          >
-            {mounted && theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
-
-          {/* Language Switcher */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 gap-1 px-2 text-muted-foreground hover:text-foreground">
-                <Globe className="h-4 w-4" />
-                <span className="text-xs font-semibold uppercase">{locale}</span>
+          {/* Theme Toggle & Language Switcher (only for anonymous users) */}
+          {status !== "loading" && !session && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 px-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem
-                className={`cursor-pointer ${locale === "en" ? "bg-accent font-medium" : ""}`}
-                onClick={() => setLocale("en")}
-              >
-                English
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className={`cursor-pointer ${locale === "fr" ? "bg-accent font-medium" : ""}`}
-                onClick={() => setLocale("fr")}
-              >
-                Français
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-9 gap-1 px-2 text-muted-foreground hover:text-foreground">
+                    <Globe className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase">{locale}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-32">
+                  <DropdownMenuItem
+                    className={`cursor-pointer ${locale === "en" ? "bg-accent font-medium" : ""}`}
+                    onClick={() => setLocale("en")}
+                  >
+                    English
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={`cursor-pointer ${locale === "fr" ? "bg-accent font-medium" : ""}`}
+                    onClick={() => setLocale("fr")}
+                  >
+                    Français
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
 
           {status === "loading" ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
@@ -165,6 +197,49 @@ export function Header() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
+
+                  {/* Theme Switcher */}
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  >
+                    {mounted && theme === "dark" ? (
+                      <>
+                        <Sun className="mr-2 h-4 w-4" />
+                        <span>{t("header.themeLight")}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="mr-2 h-4 w-4" />
+                        <span>{t("header.themeDark")}</span>
+                      </>
+                    )}
+                  </DropdownMenuItem>
+
+                  {/* Language Switcher Submenu */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer">
+                      <Globe className="mr-2 h-4 w-4" />
+                      <span>{t("header.language")} ({locale.toUpperCase()})</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="w-36">
+                        <DropdownMenuItem
+                          className={`cursor-pointer ${locale === "en" ? "bg-accent font-medium" : ""}`}
+                          onClick={() => setLocale("en")}
+                        >
+                          English
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className={`cursor-pointer ${locale === "fr" ? "bg-accent font-medium" : ""}`}
+                          onClick={() => setLocale("fr")}
+                        >
+                          Français
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"
                     onClick={() => signOut()}
@@ -213,12 +288,49 @@ export function Header() {
             className="md:hidden border-t overflow-hidden"
           >
             <div className="space-y-1 px-4 py-3">
+              {/* If on a dashboard/admin route, show dashboard links first */}
+              {session && isDashboardOrAdmin && (
+                <div className="space-y-1 pb-3 mb-3 border-b">
+                  <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Menu Dashboard
+                  </div>
+                  {dashboardNavigation.map((item, i) => {
+                    const isActive = pathname === item.href
+                    return (
+                      <motion.div
+                        key={item.href}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.03 }}
+                      >
+                        <Link
+                          href={item.href}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium transition-colors ${
+                            isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          }`}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <item.icon className="w-5 h-5 shrink-0" />
+                          <span>{item.name}</span>
+                        </Link>
+                      </motion.div>
+                    )
+                  })}
+                  <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
+                    Navigation Site
+                  </div>
+                </div>
+              )}
+
+              {/* Standard Public Site Navigation */}
               {navigation.map((item, i) => (
                 <motion.div
                   key={item.name}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: (session && isDashboardOrAdmin ? dashboardNavigation.length : 0) * 0.03 + i * 0.05 }}
                 >
                   <Link
                     href={item.href}
@@ -229,20 +341,39 @@ export function Header() {
                   </Link>
                 </motion.div>
               ))}
+
               {session && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navigation.length * 0.05 }}
-                >
-                  <Link
-                    href="/editor"
-                    className="block rounded-lg px-3 py-2 text-base font-medium text-primary hover:bg-muted"
-                    onClick={() => setMobileMenuOpen(false)}
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: (isDashboardOrAdmin ? dashboardNavigation.length : 0) * 0.03 + navigation.length * 0.05 }}
                   >
-                    {t("header.createFrame")}
-                  </Link>
-                </motion.div>
+                    <Link
+                      href="/editor"
+                      className="block rounded-lg px-3 py-2 text-base font-medium text-primary hover:bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {t("header.createFrame")}
+                    </Link>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: (isDashboardOrAdmin ? dashboardNavigation.length : 0) * 0.03 + (navigation.length + 1) * 0.05 }}
+                  >
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        signOut()
+                      }}
+                      className="w-full text-left block rounded-lg px-3 py-2 text-base font-medium text-destructive hover:bg-destructive/10"
+                    >
+                      {t("header.signOut")}
+                    </button>
+                  </motion.div>
+                </>
               )}
             </div>
           </motion.div>

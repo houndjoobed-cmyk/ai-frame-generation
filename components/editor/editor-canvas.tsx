@@ -175,8 +175,8 @@ export function EditorCanvas() {
       const parentWidth = parent.clientWidth
       const currentWidth = fabricRef.current.width || CANVAS_SIZE
 
-      // Only auto-fit on mobile screens (width < 768px)
-      if (window.innerWidth < 768) {
+      // Only auto-fit on mobile screens (width < 1024px)
+      if (window.innerWidth < 1024) {
         const availableWidth = parentWidth - 32
         const fitZoom = Math.min(100, Math.floor((availableWidth / currentWidth) * 100))
         handleZoom(fitZoom)
@@ -871,10 +871,10 @@ export function EditorCanvas() {
           setAiNegativePrompt={setAiNegativePrompt}
           isGenerating={isGenerating}
           handleAIGenerate={handleAIGenerate}
-          className={activeMobileTab === "sidebar" ? "flex w-full" : "hidden md:flex"}
+          className={activeMobileTab === "sidebar" ? "flex w-full" : "hidden lg:flex"}
         />
 
-        <main className={`flex-1 bg-muted/20 flex flex-col overflow-hidden relative ${activeMobileTab === "editor" ? "flex" : "hidden md:flex"}`}>
+        <main className={`flex-1 bg-muted/20 flex flex-col overflow-hidden relative ${activeMobileTab === "editor" ? "flex" : "hidden lg:flex"}`}>
           <EditorToolbar 
             canUndo={canUndo}
             canRedo={canRedo}
@@ -893,7 +893,7 @@ export function EditorCanvas() {
             saveState={saveState}
           />
 
-          <div className="flex-1 overflow-auto flex items-center justify-center p-4 md:p-8 bg-muted/10 relative">
+          <div className="flex-1 overflow-auto flex items-center justify-center p-4 lg:p-8 bg-muted/10 relative">
             <div 
               className="relative shadow-2xl rounded-lg overflow-hidden shrink-0 transition-all duration-200"
               style={{
@@ -936,13 +936,13 @@ export function EditorCanvas() {
           saveState={saveState}
           autoCropToFrame={autoCropToFrame}
           resetCanvas={resetCanvas}
-          className={activeMobileTab === "properties" ? "flex w-full" : "hidden md:flex"}
+          className={activeMobileTab === "properties" ? "flex w-full" : "hidden lg:flex"}
           onBackToEditor={handleBackToEditor}
         />
       </div>
 
       {/* Mobile Tab Bar */}
-      <div className="md:hidden h-16 border-t bg-card flex items-center justify-around px-4 shrink-0 z-50">
+      <div className="lg:hidden h-16 border-t bg-card flex items-center justify-around px-4 shrink-0 z-50">
         <button
           onClick={() => setActiveMobileTab("sidebar")}
           className={`flex flex-col items-center justify-center gap-1 text-xs font-semibold h-full w-20 transition-colors ${

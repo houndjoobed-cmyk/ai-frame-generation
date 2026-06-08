@@ -12,6 +12,9 @@ export const translations = {
     "header.signOut": "Sign out",
     "header.signIn": "Sign in",
     "header.getStarted": "Get Started",
+    "header.themeDark": "Dark Mode",
+    "header.themeLight": "Light Mode",
+    "header.language": "Language",
 
     // Footer
     "footer.description": "Create beautiful photo frames for your events. Transform your memories into shareable moments.",
@@ -489,6 +492,9 @@ export const translations = {
     "header.signOut": "Se déconnecter",
     "header.signIn": "Se connecter",
     "header.getStarted": "Démarrer",
+    "header.themeDark": "Mode sombre",
+    "header.themeLight": "Mode clair",
+    "header.language": "Langue",
 
     // Footer
     "footer.description": "Créez de superbes cadres photo pour vos événements. Transformez vos souvenirs en moments à partager.",

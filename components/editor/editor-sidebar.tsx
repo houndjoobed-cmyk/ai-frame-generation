@@ -68,7 +68,7 @@ export function EditorSidebar({
   const { t } = useI18n()
 
   return (
-    <aside className={`w-full md:w-72 border-r bg-muted/30 flex flex-col ${className || ""}`}>
+    <aside className={`w-full lg:w-72 border-r bg-muted/30 flex flex-col ${className || ""}`}>
       <Tabs defaultValue="upload" className="flex-1 flex flex-col">
         <TabsList className="grid grid-cols-4 m-2">
           <TabsTrigger value="upload" className="text-xs">
