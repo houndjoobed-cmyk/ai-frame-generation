@@ -10,10 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Frame, Menu, X, User, Settings, LogOut, LayoutDashboard, Globe, Sun, Moon, Shield, FolderOpen, Heart, Plus, Bell, Paintbrush } from "lucide-react"
@@ -198,47 +194,73 @@ export function Header() {
                   )}
                   <DropdownMenuSeparator />
 
-                  {/* Theme Switcher */}
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  >
-                    {mounted && theme === "dark" ? (
-                      <>
-                        <Sun className="mr-2 h-4 w-4" />
-                        <span>{t("header.themeLight")}</span>
-                      </>
-                    ) : (
-                      <>
+                  {/* Theme Switcher (Segmented Control) */}
+                  <div className="flex items-center justify-between px-2 py-1.5 text-sm text-foreground">
+                    <div className="flex items-center text-muted-foreground select-none">
+                      {mounted && theme === "dark" ? (
                         <Moon className="mr-2 h-4 w-4" />
-                        <span>{t("header.themeDark")}</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
+                      ) : (
+                        <Sun className="mr-2 h-4 w-4" />
+                      )}
+                      <span>{t("header.theme")}</span>
+                    </div>
+                    <div className="flex rounded-md border bg-muted p-0.5 select-none">
+                      <button
+                        type="button"
+                        onClick={() => setTheme("light")}
+                        className={`rounded-sm px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer outline-hidden ${
+                          theme === "light"
+                            ? "bg-background text-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t("header.themeLabelLight")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTheme("dark")}
+                        className={`rounded-sm px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer outline-hidden ${
+                          theme === "dark"
+                            ? "bg-background text-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t("header.themeLabelDark")}
+                      </button>
+                    </div>
+                  </div>
 
-                  {/* Language Switcher Submenu */}
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer">
+                  {/* Language Switcher (Segmented Control) */}
+                  <div className="flex items-center justify-between px-2 py-1.5 text-sm text-foreground">
+                    <div className="flex items-center text-muted-foreground select-none">
                       <Globe className="mr-2 h-4 w-4" />
-                      <span>{t("header.language")} ({locale.toUpperCase()})</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent className="w-36">
-                        <DropdownMenuItem
-                          className={`cursor-pointer ${locale === "en" ? "bg-accent font-medium" : ""}`}
-                          onClick={() => setLocale("en")}
-                        >
-                          English
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className={`cursor-pointer ${locale === "fr" ? "bg-accent font-medium" : ""}`}
-                          onClick={() => setLocale("fr")}
-                        >
-                          Français
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenuSub>
+                      <span>{t("header.language")}</span>
+                    </div>
+                    <div className="flex rounded-md border bg-muted p-0.5 select-none">
+                      <button
+                        type="button"
+                        onClick={() => setLocale("en")}
+                        className={`rounded-sm px-2.5 py-0.5 text-xs font-semibold transition-all cursor-pointer outline-hidden ${
+                          locale === "en"
+                            ? "bg-background text-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        EN
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLocale("fr")}
+                        className={`rounded-sm px-2.5 py-0.5 text-xs font-semibold transition-all cursor-pointer outline-hidden ${
+                          locale === "fr"
+                            ? "bg-background text-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        FR
+                      </button>
+                    </div>
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"

@@ -15,6 +15,9 @@ export const translations = {
     "header.themeDark": "Dark Mode",
     "header.themeLight": "Light Mode",
     "header.language": "Language",
+    "header.theme": "Theme",
+    "header.themeLabelLight": "Light",
+    "header.themeLabelDark": "Dark",
 
     // Footer
     "footer.description": "Create beautiful photo frames for your events. Transform your memories into shareable moments.",
@@ -495,6 +498,9 @@ export const translations = {
     "header.themeDark": "Mode sombre",
     "header.themeLight": "Mode clair",
     "header.language": "Langue",
+    "header.theme": "Thème",
+    "header.themeLabelLight": "Clair",
+    "header.themeLabelDark": "Sombre",
 
     // Footer
     "footer.description": "Créez de superbes cadres photo pour vos événements. Transformez vos souvenirs en moments à partager.",
