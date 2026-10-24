@@ -23,7 +23,7 @@ interface EditorSidebarProps {
   setSelectedCategory: (cat: string) => void
   categories: Category[]
   filteredFrames: Frame[]
-  addFrameToCanvas: (url: string) => void
+  addFrameToCanvas: (url: string, frameId?: string) => void
   textOptions: any
   setTextOptions: React.Dispatch<React.SetStateAction<any>>
   addText: (options: any, t: any) => void
@@ -130,7 +130,7 @@ export function EditorSidebar({
               {filteredFrames.map((frame) => (
                 <button
                   key={frame.id}
-                  onClick={() => frame.image_url && addFrameToCanvas(frame.image_url)}
+                  onClick={() => frame.image_url && addFrameToCanvas(frame.image_url, frame.id)}
                   className="aspect-square rounded-lg bg-muted border hover:border-primary transition-colors overflow-hidden relative group"
                 >
                   {frame.thumbnail_url || frame.image_url ? (

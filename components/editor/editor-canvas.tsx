@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
+import { dataUrlToBlob } from "@/lib/utils"
 import type { Frame, Category } from "@/lib/types"
 import { toast } from "sonner"
 import {
@@ -36,7 +37,9 @@ import {
   Loader2,
   Layers,
   Frame as FrameIcon,
-  Sliders
+  Sliders,
+  Sparkles,
+  Camera
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
@@ -62,6 +65,7 @@ const EXPORT_SIZES = [
 
 const CUSTOM_PROPS = [
   "isFrame",
+  "frameId",
   "selectable",
   "evented",
   "lockMovementX",
@@ -90,10 +94,12 @@ export function EditorCanvas() {
   const [projectName, setProjectName] = useState(t("editor.untitled"))
   const [isSaving, setIsSaving] = useState(false)
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [currentFrameId, setCurrentFrameId] = useState<string | null>(frameId || null)
   const [activeMobileTab, setActiveMobileTab] = useState<"sidebar" | "editor" | "properties">("editor")
   const [isSharing, setIsSharing] = useState(false)
   const [shareId, setShareId] = useState<string | null>(null)
   const [copiedShareLink, setCopiedShareLink] = useState(false)
+  const [copiedFrameLink, setCopiedFrameLink] = useState(false)
   const [exportSize, setExportSize] = useState(EXPORT_SIZES[0])
   const [textOptions, setTextOptions] = useState({
     text: "Your Text",
@@ -260,8 +266,30 @@ export function EditorCanvas() {
     return () => { active = false }
   }, [searchParams, session, canvasReady, t, initHistory, enforceFrameProperties, fabricRef, isTrackingRef])
 
-  const addFrameToCanvas = useCallback(async (imageUrl: string) => {
+  const getActiveFrameId = useCallback(() => {
+    if (currentFrameId) return currentFrameId
+    if (frameId) return frameId
+
+    if (fabricRef.current) {
+      const frameObj = fabricRef.current.getObjects().find((obj: any) => obj.isFrame)
+      if (frameObj) {
+        if ((frameObj as any).frameId) return (frameObj as any).frameId
+        const src = (frameObj as any).getSrc?.() || (frameObj as any)._element?.src || (frameObj as any).src
+        if (src && frames.length > 0) {
+          const found = frames.find((f) => f.image_url === src || (f.image_url && src.includes(f.image_url)))
+          if (found) return found.id
+        }
+      }
+    }
+    return null
+  }, [currentFrameId, frameId, fabricRef, frames])
+
+  const addFrameToCanvas = useCallback(async (imageUrl: string, newFrameId?: string) => {
     if (!fabricRef.current) return
+
+    if (newFrameId) {
+      setCurrentFrameId(newFrameId)
+    }
 
     try {
       const objects = fabricRef.current.getObjects()
@@ -270,17 +298,16 @@ export function EditorCanvas() {
         fabricRef.current.remove(existingFrame)
       }
 
-      const imgElement = document.createElement("img")
-      imgElement.crossOrigin = "anonymous"
-      
-      await new Promise((resolve, reject) => {
-        imgElement.onload = resolve
-        imgElement.onerror = reject
-        imgElement.src = imageUrl
+      const img = await fabric.FabricImage.fromURL(imageUrl, {
+        crossOrigin: "anonymous",
       })
 
-      const frameWidth = imgElement.width
-      const frameHeight = imgElement.height
+      if (!img) {
+        throw new Error("Impossible de charger l'image du cadre.")
+      }
+
+      const frameWidth = img.width || CANVAS_SIZE
+      const frameHeight = img.height || CANVAS_SIZE
       const oldWidth = fabricRef.current.width || CANVAS_SIZE
       const oldHeight = fabricRef.current.height || CANVAS_SIZE
 
@@ -309,11 +336,15 @@ export function EditorCanvas() {
         obj.setCoords()
       })
 
-      const img = new fabric.FabricImage(imgElement, {
+      const scale = newWidth / frameWidth
+
+      img.set({
         left: newWidth / 2,
         top: newHeight / 2,
         originX: "center",
         originY: "center",
+        scaleX: scale,
+        scaleY: scale,
         selectable: false,
         evented: false,
         lockMovementX: true,
@@ -323,12 +354,11 @@ export function EditorCanvas() {
         lockRotation: true,
         hasControls: false,
         hasBorders: false,
-        crossOrigin: "anonymous"
       })
       ;(img as any).isFrame = true
-
-      const scale = newWidth / frameWidth
-      img.scale(scale)
+      if (newFrameId) {
+        ;(img as any).frameId = newFrameId
+      }
 
       fabricRef.current.add(img)
       fabricRef.current.bringObjectToFront(img)
@@ -340,7 +370,7 @@ export function EditorCanvas() {
       console.error("Frame loading failed:", err)
       toast.error(t("editor.toast.frameFailed"))
     }
-  }, [fabricRef, saveState, t])
+  }, [fabricRef, saveState, t, updateDimensions])
 
   // Fetch frames and categories
   useEffect(() => {
@@ -358,10 +388,19 @@ export function EditorCanvas() {
       if (framesRes.data) setFrames(framesRes.data as Frame[])
       if (categoriesRes.data) setCategories(categoriesRes.data)
 
-      if (frameId && framesRes.data) {
-        const frame = framesRes.data.find((f: any) => f.id === frameId)
+      if (frameId) {
+        setCurrentFrameId(frameId)
+        let frame = framesRes.data?.find((f: any) => f.id === frameId)
+        if (!frame) {
+          const { data: directFrame } = await supabase
+            .from("frames")
+            .select("*")
+            .eq("id", frameId)
+            .maybeSingle()
+          frame = directFrame
+        }
         if (frame?.image_url) {
-          addFrameToCanvas(frame.image_url)
+          addFrameToCanvas(frame.image_url, frame.id)
         }
       }
     }
@@ -514,8 +553,7 @@ export function EditorCanvas() {
         multiplier: 0.5,
       })
 
-      const base64Data = dataUrl.split(",")[1]
-      const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(r => r.blob())
+      const blob = dataUrlToBlob(dataUrl)
       
       const fileName = `${session.user.id}/${Date.now()}-thumbnail.jpg`
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -583,58 +621,54 @@ export function EditorCanvas() {
     if (!fabricRef.current) return
 
     setIsSharing(true)
+    setShareId(null)
     try {
+      const canvasWidth = fabricRef.current.width || CANVAS_SIZE
+      const canvasHeight = fabricRef.current.height || CANVAS_SIZE
+
       const dataUrl = fabricRef.current.toDataURL({
-        format: "jpeg",
-        quality: 0.9,
-        multiplier: 2,
+        format: "png",
+        multiplier: 1.5,
       })
 
-      const base64Data = dataUrl.split(",")[1]
-      const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(r => r.blob())
-      
-      const fileName = `${session.user.id}/shares/${Date.now()}.jpg`
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("projects")
-        .upload(fileName, blob, {
-          contentType: "image/jpeg",
-          upsert: true
-        })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("projects")
-        .getPublicUrl(fileName)
+      const isValidUuid =
+        currentProjectId &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentProjectId)
 
       const payload = {
-        name: projectName,
-        user_id: session.user.id,
-        image_url: publicUrl,
-        project_id: currentProjectId,
+        base64Image: dataUrl,
+        projectId: isValidUuid ? currentProjectId : null,
+        exportPreset:
+          canvasWidth === canvasHeight
+            ? "square"
+            : canvasHeight > canvasWidth
+            ? "story"
+            : "custom",
+        width: Math.round(canvasWidth),
+        height: Math.round(canvasHeight),
       }
 
-      const res = await fetch("/api/shares", {
+      const res = await fetch("/api/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
 
       const data = await res.json()
-      if (res.ok && data.success) {
-        setShareId(data.share.id)
+      if (res.ok && data.success && data.shareId) {
+        setShareId(data.shareId)
         setCopiedShareLink(false)
         toast.success(t("editor.toast.shareCreated"))
       } else {
         throw new Error(data.error || "Failed to create share")
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Share error:", err)
-      toast.error(t("editor.toast.shareFailed"))
+      toast.error(err?.message || t("editor.toast.shareFailed"))
     } finally {
       setIsSharing(false)
     }
-  }, [session, projectName, currentProjectId, t, fabricRef, supabase.storage])
+  }, [session, currentProjectId, t, fabricRef])
 
   const fitPhoto = useCallback(() => {
     if (!fabricRef.current || !selectedObject) return;
@@ -698,6 +732,16 @@ export function EditorCanvas() {
     ? frames
     : frames.filter((f) => f.category?.slug === selectedCategory)
 
+  const activeFrameId = getActiveFrameId()
+  const frameShareUrl = activeFrameId && typeof window !== "undefined"
+    ? `${window.location.origin}/editor?frame=${activeFrameId}`
+    : null
+  const creationShareUrl = shareId && typeof window !== "undefined"
+    ? `${window.location.origin}/share/${shareId}${activeFrameId ? `?frame=${activeFrameId}` : ""}`
+    : null
+
+  const primaryInviteUrl = frameShareUrl || creationShareUrl || (typeof window !== "undefined" ? window.location.href : "")
+
   return (
     <div className="flex flex-col h-dvh w-full overflow-hidden bg-background">
       <header className="h-16 border-b flex items-center justify-between px-3 sm:px-6 bg-card shrink-0 w-full overflow-hidden">
@@ -723,68 +767,130 @@ export function EditorCanvas() {
                 <span className="hidden sm:inline">Partager</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Partager votre création</DialogTitle>
+                <DialogTitle className="flex items-center gap-2 text-lg">
+                  <Share2 className="w-5 h-5 text-primary" />
+                  Partager ce cadre
+                </DialogTitle>
                 <DialogDescription>
-                  Votre image est en cours de préparation pour être partagée.
+                  Permettez à vos amis, participants ou abonnés d&apos;ajouter leur propre photo dans ce cadre !
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className="py-2 space-y-4">
                 {isSharing ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                    <p className="text-sm text-muted-foreground">Génération de l'image haute qualité...</p>
+                    <p className="text-sm text-muted-foreground">Préparation du lien de partage...</p>
                   </div>
-                ) : shareId ? (
+                ) : (
                   <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input 
-                        value={`${window.location.origin}/share/${shareId}`} 
-                        readOnly
-                        className="text-xs"
-                      />
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          const url = `${window.location.origin}/share/${shareId}`
-                          await navigator.clipboard.writeText(url)
-                          setCopiedShareLink(true)
-                          toast.success(t("editor.toast.shareSuccess"))
-                        }}
-                      >
-                        {copiedShareLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      </Button>
+                    {/* Primary Card: Frame link for friends to add their photo */}
+                    <div className="p-4 rounded-xl border-2 border-primary/40 bg-primary/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4" />
+                          Lien pour que vos amis ajoutent leur photo
+                        </span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-semibold">
+                          Recommandé
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        En cliquant sur ce lien, ils arrivent directement sur ce cadre dans l&apos;éditeur et peuvent y insérer leur photo en 1 clic.
+                      </p>
+                      <div className="flex gap-2">
+                        <Input 
+                          value={primaryInviteUrl} 
+                          readOnly
+                          className="text-xs font-mono bg-background/90"
+                        />
+                        <Button
+                          size="sm"
+                          className="shrink-0"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(primaryInviteUrl)
+                            setCopiedFrameLink(true)
+                            toast.success("Lien copié ! Vos amis peuvent maintenant y ajouter leur photo.")
+                            setTimeout(() => setCopiedFrameLink(false), 2500)
+                          }}
+                        >
+                          {copiedFrameLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          <span className="ml-1.5 hidden sm:inline">{copiedFrameLink ? "Copié !" : "Copier"}</span>
+                        </Button>
+                      </div>
+
+                      {/* Social sharing for inviting friends to frame */}
+                      <div className="grid grid-cols-3 gap-2 pt-1">
+                        <a
+                          href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Regarde mon cadre ! Clique ici pour ajouter ta photo dans ce cadre : ${primaryInviteUrl}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[#25D366] text-white hover:bg-[#20ba59] transition-colors text-xs font-semibold text-center shadow-xs"
+                        >
+                          WhatsApp
+                        </a>
+                        <a
+                          href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(primaryInviteUrl)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[#1877F2] text-white hover:bg-[#156bec] transition-colors text-xs font-semibold text-center shadow-xs"
+                        >
+                          Facebook
+                        </a>
+                        <a
+                          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Ajoutez votre photo dans ce cadre !`)}&url=${encodeURIComponent(primaryInviteUrl)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[#1DA1F2] text-white hover:bg-[#1a94df] transition-colors text-xs font-semibold text-center shadow-xs"
+                        >
+                          Twitter
+                        </a>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
-                      <a
-                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Regardez ma création : ${window.location.origin}/share/${shareId}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1 p-2 rounded-md bg-[#25D366] text-white hover:bg-[#20ba59] transition-colors text-xs font-semibold text-center"
-                      >
-                        WhatsApp
-                      </a>
-                      <a
-                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/share/${shareId}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1 p-2 rounded-md bg-[#1877F2] text-white hover:bg-[#156bec] transition-colors text-xs font-semibold text-center"
-                      >
-                        Facebook
-                      </a>
-                      <a
-                        href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`${window.location.origin}/share/${shareId}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1 p-2 rounded-md bg-[#1DA1F2] text-white hover:bg-[#1a94df] transition-colors text-xs font-semibold text-center"
-                      >
-                        Twitter
-                      </a>
-                    </div>
+                    {/* Secondary: Preview page of completed photo */}
+                    {shareId && (
+                      <div className="p-3 rounded-xl border border-border/70 bg-muted/20 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Page d&apos;aperçu de votre création terminée
+                          </span>
+                          <a
+                            href={`/share/${shareId}${activeFrameId ? `?frame=${activeFrameId}` : ""}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline font-medium inline-flex items-center gap-1"
+                          >
+                            Ouvrir la page &rarr;
+                          </a>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input 
+                            value={creationShareUrl || ""} 
+                            readOnly
+                            className="text-xs h-8 bg-background/60"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2.5 shrink-0"
+                            onClick={async () => {
+                              if (creationShareUrl) {
+                                await navigator.clipboard.writeText(creationShareUrl)
+                                setCopiedShareLink(true)
+                                toast.success(t("editor.toast.shareSuccess") || "Lien de la photo copié !")
+                                setTimeout(() => setCopiedShareLink(false), 2000)
+                              }
+                            }}
+                          >
+                            {copiedShareLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ) : null}
+                )}
               </div>
             </DialogContent>
           </Dialog>

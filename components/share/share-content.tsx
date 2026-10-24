@@ -13,7 +13,8 @@ import {
   Check, 
   Sparkles, 
   ArrowRight, 
-  MessageSquare
+  MessageSquare,
+  Camera
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
@@ -22,9 +23,10 @@ interface SharePageContentProps {
     id: string
     file_url: string
   }
+  frameId?: string | null
 }
 
-export function SharePageContent({ exportData }: SharePageContentProps) {
+export function SharePageContent({ exportData, frameId }: SharePageContentProps) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
 
@@ -94,11 +96,23 @@ export function SharePageContent({ exportData }: SharePageContentProps) {
             </Card>
           </div>
 
+          {/* Main Action: Add your photo in this frame */}
+          <Link href={frameId ? `/editor?frame=${frameId}` : "/editor"} className="mt-6 w-full max-w-[500px] block">
+            <Button 
+              className="w-full h-13 bg-linear-to-r from-emerald-500 via-primary to-indigo-600 hover:from-emerald-600 hover:to-indigo-700 text-white font-bold text-base rounded-xl shadow-xl shadow-primary/25 gap-2 transition-all duration-300 hover:scale-[1.01]"
+            >
+              <Camera className="w-5 h-5 animate-pulse" />
+              Mettre ma photo dans ce cadre
+              <ArrowRight className="w-5 h-5 ml-auto" />
+            </Button>
+          </Link>
+
           <Button 
             onClick={handleDownload} 
-            className="mt-6 w-full max-w-[500px] h-12 bg-linear-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 text-white font-medium shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 gap-2 text-base rounded-xl"
+            variant="outline"
+            className="mt-3 w-full max-w-[500px] h-11 bg-slate-900/60 border-slate-700 hover:bg-slate-800 text-slate-200 font-medium gap-2 text-sm rounded-xl"
           >
-            <Download className="w-5 h-5 animate-pulse" />
+            <Download className="w-4 h-4" />
             {t("editor.downloadPng") || "Télécharger l'image"}
           </Button>
         </div>
@@ -169,19 +183,22 @@ export function SharePageContent({ exportData }: SharePageContentProps) {
 
           <hr className="border-slate-800" />
 
-          {/* CTA: Create your own */}
+          {/* CTA: Create your own or use this frame */}
           <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 backdrop-blur-md space-y-4">
             <h3 className="font-semibold text-lg text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
-              Créer votre propre cadre ?
+              Vous aussi, ajoutez votre photo !
             </h3>
             <p className="text-xs text-slate-400">
-              Transformez vos propres photos avec nos modèles exclusifs ou créez de nouveaux styles à l'aide de l'Intelligence Artificielle.
+              {frameId
+                ? "Personnalisez ce même cadre avec votre photo en quelques secondes et partagez votre création."
+                : "Transformez vos propres photos avec nos modèles exclusifs ou créez de nouveaux styles à l'aide de l'Intelligence Artificielle."}
             </p>
-            <Link href="/editor" className="block">
-              <Button className="w-full h-11 bg-slate-800 hover:bg-slate-700 text-slate-100 hover:text-white rounded-xl gap-2 font-medium border border-slate-700 hover:border-slate-600">
-                Lancer l'Éditeur
-                <ArrowRight className="w-4 h-4" />
+            <Link href={frameId ? `/editor?frame=${frameId}` : "/editor"} className="block">
+              <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl gap-2 font-semibold shadow-md">
+                <Camera className="w-4 h-4" />
+                {frameId ? "Ajouter ma photo dans ce cadre" : "Lancer l'Éditeur"}
+                <ArrowRight className="w-4 h-4 ml-auto" />
               </Button>
             </Link>
           </div>

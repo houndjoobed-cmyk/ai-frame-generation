@@ -76,7 +76,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} bg-background`} suppressHydrationWarning>
-      <body className="font-sans antialiased min-h-screen">
+      <body className="font-sans antialiased min-h-screen" suppressHydrationWarning>
         <SessionProvider>
           <ThemeProvider
             attribute="class"

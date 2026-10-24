@@ -5,17 +5,19 @@ import { SharePageContent } from "@/components/share/share-content"
 import { notFound } from "next/navigation"
 
 interface SharePageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export async function generateMetadata({ params }: SharePageProps) {
+  const { id } = await params
   const supabase = createAdminClient()
   const { data } = await supabase
     .from("exports")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single()
 
   if (!data || !data.file_url) {
@@ -42,13 +44,16 @@ export async function generateMetadata({ params }: SharePageProps) {
   }
 }
 
-export default async function SharePage({ params }: SharePageProps) {
+export default async function SharePage({ params, searchParams }: SharePageProps) {
+  const { id } = await params
+  const resolvedSearchParams = await searchParams
+  const frameId = typeof resolvedSearchParams?.frame === "string" ? resolvedSearchParams.frame : null
   const supabase = createAdminClient()
   
   const { data, error } = await supabase
     .from("exports")
     .select("id, file_url")
-    .eq("id", params.id)
+    .eq("id", id)
     .single()
 
   if (error || !data) {
@@ -59,7 +64,7 @@ export default async function SharePage({ params }: SharePageProps) {
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-primary selection:text-primary-foreground">
       <Header />
       <main className="flex-1 flex items-center justify-center relative overflow-hidden">
-        <SharePageContent exportData={data} />
+        <SharePageContent exportData={data} frameId={frameId} />
       </main>
       <Footer />
     </div>

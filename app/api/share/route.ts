@@ -70,11 +70,23 @@ export async function POST(req: Request) {
       .getPublicUrl(fileName)
 
     // 5. Insert sharing record in 'exports' table
+    let validProjectId: string | null = null
+    if (projectId) {
+      const { data: proj } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("id", projectId)
+        .maybeSingle()
+      if (proj) {
+        validProjectId = proj.id
+      }
+    }
+
     const { data: exportData, error: exportError } = await supabase
       .from("exports")
       .insert({
         user_id: session.user.id,
-        project_id: projectId || null,
+        project_id: validProjectId,
         file_url: publicUrl,
         file_format: "png",
         export_preset: exportPreset || "square",

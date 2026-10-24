@@ -41,10 +41,14 @@ export function useCanvas(CANVAS_SIZE: number) {
   }, [])
 
   useEffect(() => {
-    if (!canvasContainerRef.current) return
+    const container = canvasContainerRef.current
+    if (!container) return
+
+    // Ensure container is empty before creating a new canvas to prevent ghost canvases
+    container.innerHTML = ""
 
     const canvasEl = document.createElement("canvas")
-    canvasContainerRef.current.appendChild(canvasEl)
+    container.appendChild(canvasEl)
 
     const canvas = new fabric.Canvas(canvasEl, {
       width: CANVAS_SIZE,
@@ -75,9 +79,14 @@ export function useCanvas(CANVAS_SIZE: number) {
 
     return () => {
       setCanvasReady(false)
-      canvas.dispose()
-      if (canvasContainerRef.current) {
-        canvasContainerRef.current.innerHTML = ""
+      fabricRef.current = null
+      canvas.dispose().finally(() => {
+        if (container) {
+          container.innerHTML = ""
+        }
+      })
+      if (container) {
+        container.innerHTML = ""
       }
     }
   }, [CANVAS_SIZE])

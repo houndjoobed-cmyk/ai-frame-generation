@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       if (!buckets?.some((b) => b.name === "frames")) {
         await supabase.storage.createBucket("frames", {
           public: true,
-          fileSizeLimit: 5242880 // 5MB limit
+          fileSizeLimit: 10485760 // 10MB limit
         })
       }
     } catch (bucketError) {

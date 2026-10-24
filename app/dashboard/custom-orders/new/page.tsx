@@ -29,8 +29,8 @@ export default function NewCustomOrderPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("L'image de référence ne doit pas dépasser 5 Mo.")
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("L'image de référence ne doit pas dépasser 10 Mo.")
       return
     }
 
@@ -214,7 +214,7 @@ export default function NewCustomOrderPage() {
                     {refImageFile ? refImageFile.name : "Cliquez ou glissez une image"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    PNG, JPG ou WEBP jusqu'à 5 Mo
+                    PNG, JPG ou WEBP jusqu'à 10 Mo
                   </span>
                 </div>
               </div>

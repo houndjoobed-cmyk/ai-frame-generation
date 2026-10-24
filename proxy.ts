@@ -50,7 +50,7 @@ export default auth((req) => {
       // Fonts: self + data URIs
       "font-src 'self' data:",
       // API connections: self + Supabase + Replicate + Brevo + Resend + KkiaPay + Vercel
-      "connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.replicate.com https://api.brevo.com https://api.resend.com https://cdn.kkiapay.me https://va.vercel-scripts.com",
+      "connect-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://api.replicate.com https://api.brevo.com https://api.resend.com https://cdn.kkiapay.me https://va.vercel-scripts.com",
       // Frames: deny everything except KkiaPay payment iframe
       "frame-src 'self' https://cdn.kkiapay.me",
       // Objects: none

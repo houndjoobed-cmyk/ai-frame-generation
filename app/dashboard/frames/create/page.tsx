@@ -64,8 +64,8 @@ export default function CreateFramePage() {
       return
     }
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error("Le fichier est trop lourd. Limite max : 5 Mo.")
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      toast.error("Le fichier est trop lourd. Limite max : 10 Mo.")
       return
     }
 
@@ -310,7 +310,7 @@ export default function CreateFramePage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">Glissez-déposez un fichier ici ou cliquez</p>
-                      <p className="text-xs text-muted-foreground mt-1">Format PNG uniquement (Transparent)</p>
+                      <p className="text-xs text-muted-foreground mt-1">Format PNG uniquement (Transparent) • Max 10 Mo</p>
                     </div>
                   </div>
                 )}
