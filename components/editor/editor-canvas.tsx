@@ -436,8 +436,10 @@ export function EditorCanvas() {
     }
   }, [fabricRef, saveState, t, updateDimensions, frames])
 
-  // Fetch frames and categories
+  // Fetch frames and categories (skip heavy 50-frame query in Simple Mode when a specific frameId is already requested)
   useEffect(() => {
+    if (isSimpleMode && frameId) return
+
     async function fetchData() {
       const [framesRes, categoriesRes] = await Promise.all([
         supabase
@@ -445,7 +447,7 @@ export function EditorCanvas() {
           .select("*, category:categories(*)")
           .eq("is_active", true)
           .order("download_count", { ascending: false })
-          .limit(50),
+          .limit(24),
         supabase.from("categories").select("*").order("name"),
       ])
 
@@ -454,7 +456,7 @@ export function EditorCanvas() {
     }
 
     fetchData()
-  }, [supabase])
+  }, [supabase, isSimpleMode, frameId])
 
   // Load initial frame from URL parameter once canvas is ready
   const initialFrameLoadedRef = useRef<string | null>(null)
@@ -503,11 +505,41 @@ export function EditorCanvas() {
     const file = e.target.files?.[0]
     if (!file || !fabricRef.current) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
+    // Use Object URL + offscreen canvas downscaling (max 1600px) so 12MP–48MP iPhone camera photos
+    // don't exceed iOS WebKit GPU/RAM limits and crash the tab.
+    const objectUrl = URL.createObjectURL(file)
+    const rawImg = new Image()
+    rawImg.crossOrigin = "anonymous"
+    rawImg.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      if (!fabricRef.current) return
+
+      const MAX_PHOTO_DIM = 1600
+      let targetW = rawImg.naturalWidth || rawImg.width
+      let targetH = rawImg.naturalHeight || rawImg.height
+
+      if (targetW > MAX_PHOTO_DIM || targetH > MAX_PHOTO_DIM) {
+        if (targetW >= targetH) {
+          targetH = Math.round((targetH * MAX_PHOTO_DIM) / targetW)
+          targetW = MAX_PHOTO_DIM
+        } else {
+          targetW = Math.round((targetW * MAX_PHOTO_DIM) / targetH)
+          targetH = MAX_PHOTO_DIM
+        }
+      }
+
+      const offscreen = document.createElement("canvas")
+      offscreen.width = targetW
+      offscreen.height = targetH
+      const ctx = offscreen.getContext("2d")
+      if (ctx) {
+        ctx.drawImage(rawImg, 0, 0, targetW, targetH)
+      }
+      const compressedDataUrl = offscreen.toDataURL("image/jpeg", 0.9)
+
       const imgElement = document.createElement("img")
       imgElement.crossOrigin = "anonymous"
-      imgElement.src = event.target?.result as string
+      imgElement.src = compressedDataUrl
       imgElement.onload = () => {
         if (!fabricRef.current) return
 
@@ -554,7 +586,11 @@ export function EditorCanvas() {
         setActiveMobileTab("editor")
       }
     }
-    reader.readAsDataURL(file)
+    rawImg.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      toast.error("Impossible de lire cette photo.")
+    }
+    rawImg.src = objectUrl
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -676,12 +712,17 @@ export function EditorCanvas() {
           multiplier,
         })
 
+        const blob = dataUrlToBlob(dataUrl)
+        const blobUrl = URL.createObjectURL(blob)
+        const fileName = `${projectName.replace(/\s+/g, "-").toLowerCase()}.${format}`
+
         const link = document.createElement("a")
-        link.download = `${projectName.replace(/\s+/g, "-").toLowerCase()}.${format}`
-        link.href = dataUrl
+        link.download = fileName
+        link.href = blobUrl
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000)
         toast.success(t("editor.toast.exportSuccess") || "Image téléchargée avec succès !")
       }
     } catch (err) {

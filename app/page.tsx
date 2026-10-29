@@ -179,10 +179,10 @@ export default function HomePage() {
       <main className="flex-1 overflow-x-hidden">
         {/* Hero Section */}
         <section className="relative pt-28 pb-20 sm:pt-36 sm:pb-24 flex flex-col items-center justify-center">
-          {/* Neon Radial Rotating Background Glows */}
+          {/* Background Glows (desktop only for blur-heavy orbs to prevent iOS WebKit GPU memory crashes) */}
           <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
-          <div className="absolute -top-40 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen pointer-events-none animate-pulse duration-8000" />
-          <div className="absolute top-20 right-1/4 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px] mix-blend-screen pointer-events-none animate-pulse duration-6000" />
+          <div className="hidden md:block absolute -top-40 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="hidden md:block absolute top-20 right-1/4 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[90px] pointer-events-none" />
 
           <div className="relative mx-auto max-w-7xl px-4 text-center z-10">
             <motion.div
@@ -191,7 +191,7 @@ export default function HomePage() {
               transition={{ duration: 0.5 }}
             >
               <Badge variant="secondary" className="mb-6 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold gap-1.5 shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 animate-spin duration-3000" />
+                <Sparkles className="w-3.5 h-3.5" />
                 {t("home.badge")}
               </Badge>
             </motion.div>
@@ -203,7 +203,7 @@ export default function HomePage() {
               transition={{ duration: 0.8, delay: 0.1 }}
             >
               {t("home.title1")}{" "}
-              <span className="bg-linear-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(var(--primary),0.15)]">
+              <span className="bg-linear-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent">
                 {t("home.title2")}
               </span>
             </motion.h1>
@@ -281,7 +281,7 @@ export default function HomePage() {
                   className="h-full"
                 >
                   <Link href={`/gallery?category=${category.slug}`} className="h-full block">
-                    <Card className="h-full overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer bg-card/60 backdrop-blur-md border-border/60 hover:border-primary/40 group">
+                    <Card className="h-full overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer bg-card/90 md:bg-card/60 md:backdrop-blur-md border-border/60 hover:border-primary/40 group">
                       <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full">
                         <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${category.color}`}>
                           {category.count} Templates
@@ -315,7 +315,7 @@ export default function HomePage() {
 
         {/* Features Section */}
         <section className="py-24 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
+          <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
           <div className="mx-auto max-w-7xl px-4 lg:px-8 relative z-10">
             <motion.div 
               className="text-center mb-20"
@@ -345,7 +345,7 @@ export default function HomePage() {
                   variants={fadeInUp}
                   whileHover={{ y: -6 }}
                 >
-                  <Card className="h-full bg-card/40 backdrop-blur-md border border-border/60 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 group">
+                  <Card className="h-full bg-card/90 md:bg-card/40 md:backdrop-blur-md border border-border/60 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 group">
                     <CardContent className="p-8">
                       <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
                         <feature.icon className="w-7 h-7 text-primary" />
@@ -407,7 +407,7 @@ export default function HomePage() {
                   {index < 2 && (
                     <div className="hidden lg:block absolute top-16 left-[70%] w-[60%] h-0.5 bg-linear-to-r from-primary/30 to-transparent z-0" />
                   )}
-                  <Card className="relative bg-card/60 backdrop-blur-md rounded-3xl p-8 border border-border/60 hover:border-primary/20 transition-all duration-300 hover:shadow-xl">
+                  <Card className="relative bg-card/90 md:bg-card/60 md:backdrop-blur-md rounded-3xl p-8 border border-border/60 hover:border-primary/20 transition-all duration-300 hover:shadow-xl">
                     <CardContent className="p-0">
                       <span className="text-6xl font-black bg-linear-to-br from-primary/30 to-purple-500/10 bg-clip-text text-transparent">{item.step}</span>
                       <h3 className="mt-4 text-2xl font-bold">{item.title}</h3>
@@ -451,7 +451,7 @@ export default function HomePage() {
                   variants={fadeInUp}
                   whileHover={{ scale: 1.03, rotate: idx % 2 === 0 ? 0.5 : -0.5 }}
                 >
-                  <Card className="h-full bg-card/40 backdrop-blur-md border border-border/60 shadow-md flex flex-col justify-between p-8 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
+                  <Card className="h-full bg-card/90 md:bg-card/40 md:backdrop-blur-md border border-border/60 shadow-md flex flex-col justify-between p-8 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
                     <CardContent className="p-0">
                       <div className="flex gap-1 mb-6">
                         {[...Array(5)].map((_, i) => (
@@ -479,9 +479,8 @@ export default function HomePage() {
 
         {/* CTA Section */}
         <section className="py-28 relative overflow-hidden bg-primary text-primary-foreground">
-          {/* Glow effects inside CTA */}
           <div className="absolute inset-0 bg-linear-to-r from-primary to-purple-800 opacity-90" />
-          <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-accent/20 rounded-full blur-[120px] pointer-events-none" />
+          <div className="hidden md:block absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[90px] pointer-events-none" />
           
           <div className="relative mx-auto max-w-5xl px-4 text-center z-10">
             <motion.h2 

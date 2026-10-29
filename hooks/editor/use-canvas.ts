@@ -50,14 +50,17 @@ export function useCanvas(CANVAS_SIZE: number) {
     const canvasEl = document.createElement("canvas")
     container.appendChild(canvasEl)
 
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768
+
     const canvas = new fabric.Canvas(canvasEl, {
       width: CANVAS_SIZE,
       height: CANVAS_SIZE,
       backgroundColor: "#ffffff",
       preserveObjectStacking: true,
+      // On mobile (iPhone 3x Retina), CANVAS_SIZE=800 displayed in ~320px is already >2.5x retina.
+      // Disabling extra 3x buffer multiplication prevents 2400x2400x2 GPU memory crashes on iOS WebKit.
+      enableRetinaScaling: !isMobile,
     })
-
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768
 
     // Configure selection styles globally in Fabric for touch friendliness
     fabric.FabricObject.prototype.set({

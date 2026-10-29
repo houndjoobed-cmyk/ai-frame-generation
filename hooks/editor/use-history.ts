@@ -12,9 +12,15 @@ export function useHistory(
 
   const saveState = useCallback(() => {
     if (!fabricRef.current || !isTrackingRef.current) return
-    const json = JSON.stringify((fabricRef.current as any).toJSON(CUSTOM_PROPS))
-    setUndoStack((prev) => [...prev.slice(-19), json])
-    setRedoStack([])
+    try {
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768
+      const maxHistory = isMobile ? 4 : 19
+      const json = JSON.stringify((fabricRef.current as any).toJSON(CUSTOM_PROPS))
+      setUndoStack((prev) => [...prev.slice(-maxHistory), json])
+      setRedoStack([])
+    } catch {
+      // Avoid crashing on low-memory mobile devices
+    }
   }, [fabricRef, isTrackingRef, CUSTOM_PROPS])
 
   const initHistory = useCallback((json: string) => {

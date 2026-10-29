@@ -19,14 +19,17 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // After mount, check for a stored preference or detect browser language
-    const storedLocale = localStorage.getItem("NEXT_LOCALE") as Locale
-    if (storedLocale && (storedLocale === "en" || storedLocale === "fr")) {
-      setLocaleState(storedLocale)
-    } else {
-      const browserLang = navigator.language.startsWith("fr") ? "fr" : "en"
-      setLocaleState(browserLang)
-      localStorage.setItem("NEXT_LOCALE", browserLang)
+    try {
+      const storedLocale = localStorage.getItem("NEXT_LOCALE") as Locale
+      if (storedLocale && (storedLocale === "en" || storedLocale === "fr")) {
+        setLocaleState(storedLocale)
+      } else {
+        const browserLang = navigator.language?.startsWith("fr") ? "fr" : "en"
+        setLocaleState(browserLang)
+        localStorage.setItem("NEXT_LOCALE", browserLang)
+      }
+    } catch {
+      // Ignore storage errors in restricted iOS browsing modes
     }
     setMounted(true)
   }, [])
@@ -34,7 +37,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale)
     if (typeof window !== "undefined") {
-      localStorage.setItem("NEXT_LOCALE", newLocale)
+      try {
+        localStorage.setItem("NEXT_LOCALE", newLocale)
+      } catch {
+        // Ignore storage errors
+      }
       document.documentElement.lang = newLocale
     }
   }
