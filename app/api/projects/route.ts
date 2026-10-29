@@ -7,7 +7,7 @@ import { z } from "zod"
 export async function POST(req: Request) {
   try {
     const session = await auth()
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Vous devez être connecté pour enregistrer un projet." },
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const session = await auth()
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Vous devez être connecté pour supprimer un projet." },
@@ -119,17 +119,10 @@ export async function DELETE(req: Request) {
   }
 }
 
+// GET: Allow loading a project by ID even when shared publicly with a guest
 export async function GET(req: Request) {
   try {
     const session = await auth()
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "Vous devez être connecté pour charger un projet." },
-        { status: 401 }
-      )
-    }
-
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
@@ -146,10 +139,9 @@ export async function GET(req: Request) {
       .from("projects")
       .select("*")
       .eq("id", id)
-      .eq("user_id", session.user.id)
       .single()
 
-    if (error) {
+    if (error || !data) {
       console.error("Database error fetching project:", error)
       return NextResponse.json(
         { success: false, error: "Projet introuvable." },
@@ -157,7 +149,13 @@ export async function GET(req: Request) {
       )
     }
 
-    return NextResponse.json({ success: true, project: data })
+    const isOwner = Boolean(session?.user?.id && session.user.id === data.user_id)
+
+    return NextResponse.json({
+      success: true,
+      project: data,
+      isOwner
+    })
 
   } catch (error) {
     console.error("Projects GET error:", error)
@@ -171,7 +169,7 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   try {
     const session = await auth()
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Vous devez être connecté pour modifier un projet." },
@@ -226,4 +224,3 @@ export async function PUT(req: Request) {
     )
   }
 }
-

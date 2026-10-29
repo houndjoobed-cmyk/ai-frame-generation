@@ -3,10 +3,43 @@ import { auth } from "@/lib/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { randomUUID } from "crypto"
 import { createFrameSchema } from "@/lib/validations"
+import { z } from "zod"
 
-// GET: Fetch frames created by the currently logged-in user
+// GET: Fetch a single frame by ?id= (public for shared links) or frames created by the logged-in user
 export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get("id")
+    const supabase = createAdminClient()
+
+    // Public lookup for a specific frame shared via link (/editor?frame=ID)
+    if (id) {
+      if (!z.string().uuid().safeParse(id).success) {
+        return NextResponse.json(
+          { success: false, error: "ID de cadre invalide." },
+          { status: 400 }
+        )
+      }
+
+      const { data: frame, error: frameError } = await supabase
+        .from("frames")
+        .select("*, category:categories(*)")
+        .eq("id", id)
+        .maybeSingle()
+
+      if (frameError || !frame) {
+        return NextResponse.json(
+          { success: false, error: "Cadre introuvable." },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        frame
+      })
+    }
+
     const session = await auth()
     
     if (!session?.user?.id) {
@@ -16,7 +49,6 @@ export async function GET(req: Request) {
       )
     }
 
-    const supabase = createAdminClient()
     const { data: frames, error } = await supabase
       .from("frames")
       .select("*, category:categories(*)")
@@ -92,7 +124,7 @@ export async function POST(req: Request) {
     const fileName = `templates/${session.user.id}/${fileId}.png`
 
     // 3. Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("frames")
       .upload(fileName, buffer, {
         contentType: "image/png",

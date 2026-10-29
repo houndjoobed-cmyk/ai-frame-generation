@@ -80,11 +80,11 @@ export function useCanvas(CANVAS_SIZE: number) {
     return () => {
       setCanvasReady(false)
       fabricRef.current = null
-      canvas.dispose().finally(() => {
-        if (container) {
-          container.innerHTML = ""
-        }
-      })
+      try {
+        canvas.dispose().catch(() => {})
+      } catch (e) {
+        // ignore
+      }
       if (container) {
         container.innerHTML = ""
       }
@@ -143,6 +143,8 @@ export function useCanvas(CANVAS_SIZE: number) {
     frameObj.set({
       left: newWidth / 2,
       top: newHeight / 2,
+      originX: "center",
+      originY: "center",
       scaleX: newWidth / frameWidth,
       scaleY: newWidth / frameWidth,
     })

@@ -7,13 +7,7 @@ import { shareSchema } from "@/lib/validations"
 export async function POST(req: Request) {
   try {
     const session = await auth()
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "Vous devez être connecté pour partager." },
-        { status: 401 }
-      )
-    }
+    const userId = session?.user?.id || null
 
     const body = await req.json()
     const parsed = shareSchema.safeParse(body)
@@ -45,10 +39,11 @@ export async function POST(req: Request) {
     // 2. Decode the base64 image
     const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "")
     const buffer = Buffer.from(base64Data, "base64")
-    const fileName = `${session.user.id}/${randomUUID()}.png`
+    const folder = userId || "guest"
+    const fileName = `${folder}/${randomUUID()}.png`
 
     // 3. Upload buffer to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("shares")
       .upload(fileName, buffer, {
         contentType: "image/png",
@@ -82,24 +77,40 @@ export async function POST(req: Request) {
       }
     }
 
-    const { data: exportData, error: exportError } = await supabase
+    const guestUuid = "00000000-0000-0000-0000-000000000000"
+    const exportPayload = {
+      user_id: userId || guestUuid,
+      project_id: validProjectId,
+      file_url: publicUrl,
+      file_format: "png",
+      export_preset: exportPreset || "square",
+      width: width || 800,
+      height: height || 800,
+      quality: "standard",
+      file_size: buffer.length,
+      status: "completed"
+    }
+
+    let { data: exportData, error: exportError } = await supabase
       .from("exports")
-      .insert({
-        user_id: session.user.id,
-        project_id: validProjectId,
-        file_url: publicUrl,
-        file_format: "png",
-        export_preset: exportPreset || "square",
-        width: width || 800,
-        height: height || 800,
-        quality: "standard",
-        file_size: buffer.length,
-        status: "completed"
-      })
+      .insert(exportPayload)
       .select()
       .single()
 
-    if (exportError) {
+    if (exportError && !userId) {
+      const { user_id: _unused, ...withoutUserId } = exportPayload
+      const retry = await supabase
+        .from("exports")
+        .insert(withoutUserId)
+        .select()
+        .single()
+      if (!retry.error) {
+        exportData = retry.data
+        exportError = null
+      }
+    }
+
+    if (exportError || !exportData) {
       console.error("Database error saving export:", exportError)
       return NextResponse.json(
         { success: false, error: "Erreur lors de la création du lien de partage." },

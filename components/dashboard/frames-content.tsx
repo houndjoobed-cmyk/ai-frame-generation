@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, MoreVertical, Heart, Download, Trash2, Eye, EyeOff, Layers } from "lucide-react"
+import { Plus, MoreVertical, Heart, Download, Trash2, Eye, EyeOff, Layers, Share2, Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,8 +38,21 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
   const { t } = useI18n()
   const [frames, setFrames] = useState<FrameItem[]>(initialFrames)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   
   const supabase = createClient()
+
+  const handleCopyShareLink = async (frameId: string) => {
+    try {
+      const shareUrl = `${window.location.origin}/editor?frame=${frameId}`
+      await navigator.clipboard.writeText(shareUrl)
+      setCopiedId(frameId)
+      toast.success("Lien du cadre copié ! Partagez-le pour que vos proches ajoutent leur photo sans connexion.")
+      setTimeout(() => setCopiedId((prev) => (prev === frameId ? null : prev)), 2500)
+    } catch {
+      toast.error("Impossible de copier le lien.")
+    }
+  }
 
   const handleDeleteFrame = async (frameId: string, frameName: string) => {
     if (!confirm(`Voulez-vous vraiment supprimer le cadre "${frameName}" ?`)) return
@@ -120,6 +133,15 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                       Utiliser
                     </Button>
                   </Link>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-1.5"
+                    onClick={() => handleCopyShareLink(frame.id)}
+                  >
+                    {copiedId === frame.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                    {copiedId === frame.id ? "Copié !" : "Partager"}
+                  </Button>
                 </div>
 
                 <DropdownMenu>
@@ -135,8 +157,11 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
                       <Link href={`/editor?frame=${frame.id}`}>
-                        Utiliser dans l'éditeur
+                        Utiliser dans l&apos;éditeur
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleCopyShareLink(frame.id)}>
+                      Copier le lien de partage
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleDeleteFrame(frame.id, frame.name)}
@@ -169,7 +194,15 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                       {frame.download_count || 0}
                     </span>
                   </div>
-                  <span>{new Date(frame.created_at).toLocaleDateString()}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs gap-1"
+                    onClick={() => handleCopyShareLink(frame.id)}
+                  >
+                    {copiedId === frame.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                    {copiedId === frame.id ? "Lien copié" : "Partager"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -181,7 +214,7 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
             <Layers className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
             <h2 className="text-xl font-semibold mb-2">Aucun cadre pour le moment</h2>
             <p className="text-muted-foreground mb-6 text-center max-w-md">
-              Importez vos propres designs de cadres (au format PNG transparent) pour permettre aux utilisateurs d'y insérer leurs photos.
+              Importez vos propres designs de cadres (au format PNG transparent) pour permettre aux utilisateurs d&apos;y insérer leurs photos.
             </p>
             <Link href="/dashboard/frames/create">
               <Button size="lg" className="gap-2">

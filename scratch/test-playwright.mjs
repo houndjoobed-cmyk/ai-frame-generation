@@ -8,41 +8,42 @@ async function run() {
   page.on("console", msg => console.log(`[BROWSER CONSOLE ${msg.type()}]:`, msg.text()))
   page.on("pageerror", err => console.error("[BROWSER ERROR]:", err))
 
-  console.log("Navigating to http://localhost:3000/editor ...")
-  await page.goto("http://localhost:3000/editor", { waitUntil: "networkidle" })
+  const frameId = "4fe774cb-0357-44e1-be37-1dae2ce5acbc"
+  console.log(`Navigating to http://localhost:3000/editor?frame=${frameId} ...`)
+  await page.goto(`http://localhost:3000/editor?frame=${frameId}`, { waitUntil: "networkidle" })
+  await page.waitForTimeout(4000)
 
-  console.log("Waiting for canvas to be ready...")
-  await page.waitForTimeout(2000)
+  const debugInfo = await page.evaluate(() => {
+    const canvas = window.__fabricCanvas
+    if (!canvas) return { error: "No __fabricCanvas on window" }
 
-  // Take screenshot before adding frame
-  await page.screenshot({ path: "scratch/editor-initial.png" })
-  console.log("Saved scratch/editor-initial.png")
+    const objects = canvas.getObjects()
+    const result = {
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      objectCount: objects.length,
+      objects: objects.map((obj) => ({
+        type: obj.type,
+        isFrame: obj.isFrame,
+        width: obj.width,
+        height: obj.height,
+        scaleX: obj.scaleX,
+        scaleY: obj.scaleY,
+        left: obj.left,
+        top: obj.top,
+        visible: obj.visible,
+        opacity: obj.opacity,
+        elementTagName: obj.getElement ? obj.getElement()?.tagName : null,
+        elementNaturalWidth: obj.getElement ? obj.getElement()?.naturalWidth : null,
+        elementNaturalHeight: obj.getElement ? obj.getElement()?.naturalHeight : null,
+        elementComplete: obj.getElement ? obj.getElement()?.complete : null,
+        elementSrc: obj.getElement ? obj.getElement()?.src : null,
+      }))
+    }
+    return result
+  })
 
-  // Check frames in sidebar
-  const frameButtons = await page.$$("button img")
-  console.log("Frame button count in sidebar:", frameButtons.length)
-
-  if (frameButtons.length > 0) {
-    console.log("Clicking first frame button...")
-    await frameButtons[0].click()
-    await page.waitForTimeout(3000)
-    await page.screenshot({ path: "scratch/editor-after-frame.png" })
-    console.log("Saved scratch/editor-after-frame.png")
-
-    // Evaluate canvas objects
-    const canvasInfo = await page.evaluate(() => {
-      const canvasEl = document.querySelector(".lower-canvas")
-      const container = document.querySelector(".canvas-container")
-      return {
-        canvasExists: !!canvasEl,
-        canvasWidth: canvasEl ? canvasEl.width : null,
-        canvasHeight: canvasEl ? canvasEl.height : null,
-        canvasStyle: canvasEl ? canvasEl.getAttribute("style") : null,
-        containerStyle: container ? container.getAttribute("style") : null
-      }
-    })
-    console.log("Canvas DOM info:", canvasInfo)
-  }
+  console.log("DEBUG INFO:", JSON.stringify(debugInfo, null, 2))
 
   await browser.close()
   console.log("Done!")

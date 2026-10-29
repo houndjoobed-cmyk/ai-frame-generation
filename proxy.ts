@@ -6,7 +6,7 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth
 
   // Protected routes that require authentication
-  const protectedPaths = ["/dashboard", "/editor", "/admin"]
+  const protectedPaths = ["/dashboard", "/admin"]
   const isProtectedRoute = protectedPaths.some((path) =>
     nextUrl.pathname.startsWith(path)
   )
@@ -19,7 +19,7 @@ export default auth((req) => {
 
   if (isProtectedRoute && !isLoggedIn) {
     const loginUrl = new URL("/auth/login", nextUrl.origin)
-    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname)
+    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname + nextUrl.search)
     return NextResponse.redirect(loginUrl)
   }
 

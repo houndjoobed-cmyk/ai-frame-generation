@@ -31,7 +31,7 @@ export function SharePageContent({ exportData, frameId }: SharePageContentProps)
   const [copied, setCopied] = useState(false)
 
   const shareUrl = typeof window !== "undefined" 
-    ? `${window.location.origin}/share/${exportData.id}` 
+    ? `${window.location.origin}/share/${exportData.id}${frameId ? `?frame=${frameId}` : ""}` 
     : ""
   const shareText = `Regardez la photo encadrée que j'ai créée avec Event Frames !`
 
