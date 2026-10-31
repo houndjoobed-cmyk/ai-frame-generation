@@ -18,8 +18,22 @@ const geistMono = Geist_Mono({
   variable: '--font-mono',
 })
 
+function resolveMetadataBaseUrl(): string {
+  const configured = process.env.NEXTAUTH_URL
+  if (configured && !(process.env.NODE_ENV === 'production' && configured.includes('localhost'))) {
+    return configured
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  return 'https://v0-ai-frame-generation.vercel.app'
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://ai-frame-generation.vercel.app'),
+  metadataBase: new URL(resolveMetadataBaseUrl()),
   title: {
     default: 'Event Frames - Create Beautiful Photo Frames',
     template: '%s | Event Frames',
@@ -67,8 +81,6 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -96,4 +108,3 @@ export default function RootLayout({
     </html>
   )
 }
-

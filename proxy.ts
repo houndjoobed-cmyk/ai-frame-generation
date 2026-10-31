@@ -1,6 +1,17 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
+// Ensure accidental localhost NEXTAUTH_URL / AUTH_URL on Vercel production
+// never causes NextAuth middleware to redirect mobile devices to localhost:3000.
+if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+  if (process.env.NEXTAUTH_URL?.includes("localhost")) {
+    delete process.env.NEXTAUTH_URL
+  }
+  if (process.env.AUTH_URL?.includes("localhost")) {
+    delete process.env.AUTH_URL
+  }
+}
+
 export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
@@ -36,7 +47,7 @@ export default auth((req) => {
     "max-age=63072000; includeSubDomains; preload"
   )
 
-  // CSP — restrictive but compatible with Next.js, Vercel Analytics, and inline styles
+  // CSP — compatible with Next.js, iOS WebKit OAuth redirects, and Supabase Realtime WebSockets
   response.headers.set(
     "Content-Security-Policy",
     [
@@ -49,16 +60,16 @@ export default auth((req) => {
       "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://lh3.googleusercontent.com https://images.unsplash.com",
       // Fonts: self + data URIs
       "font-src 'self' data:",
-      // API connections: self + Supabase + Replicate + Brevo + Resend + KkiaPay + Vercel
-      "connect-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://api.replicate.com https://api.brevo.com https://api.resend.com https://cdn.kkiapay.me https://va.vercel-scripts.com",
-      // Frames: deny everything except KkiaPay payment iframe
-      "frame-src 'self' https://cdn.kkiapay.me",
+      // API connections: self + Supabase HTTPS & WSS (for NotificationBell after login) + Google OAuth + Replicate + Brevo + Resend + KkiaPay + Vercel
+      "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://*.supabase.in wss://*.supabase.in https://accounts.google.com https://api.replicate.com https://api.brevo.com https://api.resend.com https://cdn.kkiapay.me https://va.vercel-scripts.com",
+      // Frames: deny everything except KkiaPay payment iframe & Google OAuth
+      "frame-src 'self' https://cdn.kkiapay.me https://accounts.google.com",
       // Objects: none
       "object-src 'none'",
       // Base URI: self only
       "base-uri 'self'",
-      // Form actions: self only
-      "form-action 'self'",
+      // Form actions: self + Google OAuth (critical on iOS WebKit which enforces form-action across 302 redirects)
+      "form-action 'self' https://accounts.google.com",
       // Frame ancestors: none (replaces X-Frame-Options)
       "frame-ancestors 'none'",
     ].join("; ")

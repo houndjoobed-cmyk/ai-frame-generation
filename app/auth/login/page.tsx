@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Frame, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
@@ -26,10 +26,23 @@ export default function LoginPage() {
   )
 }
 
+function getSafeCallbackPath(rawCallbackUrl: string | null): string {
+  if (!rawCallbackUrl) return "/dashboard"
+  if (rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")) {
+    return rawCallbackUrl
+  }
+  try {
+    const parsed = new URL(rawCallbackUrl)
+    return parsed.pathname + parsed.search + parsed.hash
+  } catch {
+    return "/dashboard"
+  }
+}
+
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+  const callbackUrl = getSafeCallbackPath(searchParams.get("callbackUrl"))
   const error = searchParams.get("error")
   const { t } = useI18n()
 
@@ -61,13 +74,14 @@ function LoginContent() {
 
       if (result?.error) {
         toast.error(t("auth.toast.invalid"))
+        setIsLoading(false)
       } else {
-        router.push(callbackUrl)
-        router.refresh()
+        // Use a clean full-page navigation to the relative path so iOS WebKit
+        // commits the session cookie and never redirects to a stale NEXTAUTH_URL (e.g. localhost:3000)
+        window.location.assign(callbackUrl)
       }
     } catch {
       toast.error(t("auth.toast.error"))
-    } finally {
       setIsLoading(false)
     }
   }
@@ -187,6 +201,7 @@ function LoginContent() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder={t("auth.emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -207,6 +222,7 @@ function LoginContent() {
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

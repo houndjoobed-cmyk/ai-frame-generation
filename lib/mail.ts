@@ -1,5 +1,19 @@
 import { createAdminClient } from "@/lib/supabase/admin"
 
+function getAppBaseUrl(): string {
+  const configured = process.env.NEXTAUTH_URL
+  if (configured && !((process.env.NODE_ENV === "production" || process.env.VERCEL) && configured.includes("localhost"))) {
+    return configured.replace(/\/$/, "")
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  return "http://localhost:3000"
+}
+
 interface SendMailParams {
   to: string
   subject: string
@@ -94,7 +108,7 @@ export async function sendEmail({ to, subject, html, text }: SendMailParams) {
 }
 
 export async function sendVerificationEmail(email: string, name: string | null, token: string) {
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextAuthUrl = getAppBaseUrl()
   const verifyLink = `${nextAuthUrl}/auth/verify-email?token=${token}&email=${encodeURIComponent(email)}`
 
   const subject = "Event Frames - Vérifiez votre adresse e-mail"
@@ -126,7 +140,7 @@ export async function sendVerificationEmail(email: string, name: string | null, 
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextAuthUrl = getAppBaseUrl()
   const resetLink = `${nextAuthUrl}/auth/reset-password?token=${token}&email=${encodeURIComponent(email)}`
 
   const subject = "Event Frames - Réinitialisation de votre mot de passe"
@@ -159,7 +173,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 export async function sendCustomOrderSubmittedEmail(email: string, name: string | null, eventName: string) {
   const subject = "Event Frames - Demande de cadre reçue !"
   const greeting = name ? `Bonjour ${name},` : "Bonjour,"
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextAuthUrl = getAppBaseUrl()
 
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -190,7 +204,7 @@ export async function sendCustomOrderSubmittedEmail(email: string, name: string 
 
 export async function sendAdminNewOrderEmail(email: string, clientName: string, eventName: string, orderId: string) {
   const subject = `[ADMIN] Nouvelle commande sur-mesure : ${eventName}`
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextAuthUrl = getAppBaseUrl()
 
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -220,7 +234,7 @@ export async function sendAdminNewOrderEmail(email: string, clientName: string, 
 export async function sendCustomOrderQuoteSetEmail(email: string, name: string | null, eventName: string, budget: number) {
   const subject = "Event Frames - Devis disponible pour votre cadre"
   const greeting = name ? `Bonjour ${name},` : "Bonjour,"
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextAuthUrl = getAppBaseUrl()
 
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -254,7 +268,7 @@ export async function sendCustomOrderQuoteSetEmail(email: string, name: string |
 export async function sendCustomOrderPaidEmail(email: string, name: string | null, eventName: string, amount: number) {
   const subject = "Event Frames - Paiement validé & Lancement de la conception"
   const greeting = name ? `Bonjour ${name},` : "Bonjour,"
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextAuthUrl = getAppBaseUrl()
 
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -282,7 +296,7 @@ export async function sendCustomOrderPaidEmail(email: string, name: string | nul
 
 export async function sendAdminOrderPaidEmail(email: string, clientName: string, eventName: string, amount: number, orderId: string) {
   const subject = `[ADMIN] Commande payée et à concevoir : ${eventName}`
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextAuthUrl = getAppBaseUrl()
 
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
