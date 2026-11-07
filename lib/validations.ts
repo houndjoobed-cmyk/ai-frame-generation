@@ -52,11 +52,29 @@ export const verifyEmailSchema = z.object({
 // Frame Schemas
 // ============================================
 
+export function slugify(text: string): string {
+  return text
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
 export const createFrameSchema = z.object({
   name: z
     .string()
     .min(1, "Le nom du cadre est requis")
     .max(200, "Le nom est trop long"),
+  slug: z
+    .string()
+    .trim()
+    .max(80, "Le lien personnalisé ne doit pas dépasser 80 caractères")
+    .nullable()
+    .optional(),
   description: z
     .string()
     .max(2000, "La description est trop longue")
@@ -77,6 +95,12 @@ export const updateFrameSchema = z.object({
     .string()
     .min(1, "Le nom du cadre est requis")
     .max(200, "Le nom est trop long")
+    .optional(),
+  slug: z
+    .string()
+    .trim()
+    .max(80, "Le lien personnalisé ne doit pas dépasser 80 caractères")
+    .nullable()
     .optional(),
   description: z
     .string()

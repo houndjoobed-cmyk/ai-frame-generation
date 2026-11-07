@@ -18,6 +18,7 @@ import { useI18n } from "@/lib/i18n/i18n-context"
 interface FrameItem {
   id: string
   name: string
+  slug?: string | null
   description: string | null
   image_url: string
   thumbnail_url: string | null
@@ -39,10 +40,13 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const handleCopyShareLink = async (frameId: string) => {
+  const handleCopyShareLink = async (frameOrId: FrameItem | string) => {
     try {
-      const shareUrl = `${window.location.origin}/editor?frame=${frameId}`
+      const frame = typeof frameOrId === "object" ? frameOrId : frames.find((f) => f.id === frameOrId)
+      const shareKey = frame?.slug || (typeof frameOrId === "string" ? frameOrId : frame?.id)
+      const shareUrl = `${window.location.origin}/f/${shareKey}`
       await navigator.clipboard.writeText(shareUrl)
+      const frameId = typeof frameOrId === "string" ? frameOrId : frameOrId.id
       setCopiedId(frameId)
       toast.success("Lien du cadre copié ! Partagez-le pour que vos proches ajoutent leur photo sans connexion.")
       setTimeout(() => setCopiedId((prev) => (prev === frameId ? null : prev)), 2500)
@@ -142,7 +146,7 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                     size="sm"
                     variant="outline"
                     className="gap-1.5 bg-background/80 hover:bg-background text-foreground shadow-sm"
-                    onClick={() => handleCopyShareLink(frame.id)}
+                    onClick={() => handleCopyShareLink(frame)}
                   >
                     {copiedId === frame.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
                     {copiedId === frame.id ? "Copié !" : "Partager"}
@@ -171,7 +175,7 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                         Utiliser dans l&apos;éditeur
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleCopyShareLink(frame.id)} className="cursor-pointer">
+                    <DropdownMenuItem onClick={() => handleCopyShareLink(frame)} className="cursor-pointer">
                       Copier le lien de partage
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -221,7 +225,7 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-xs gap-1"
-                      onClick={() => handleCopyShareLink(frame.id)}
+                      onClick={() => handleCopyShareLink(frame)}
                     >
                       {copiedId === frame.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
                       {copiedId === frame.id ? "Copié" : "Partager"}

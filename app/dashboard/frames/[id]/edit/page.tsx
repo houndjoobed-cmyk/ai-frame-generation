@@ -13,6 +13,7 @@ import { ArrowLeft, Upload, Loader2, AlertCircle, Eye, EyeOff } from "lucide-rea
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import Link from "next/link"
+import { slugify } from "@/lib/validations"
 
 function optimizePngToSafePayload(img: HTMLImageElement, initialMaxDim = 2048): string {
   let maxDim = initialMaxDim
@@ -62,6 +63,7 @@ export default function EditFramePage() {
 
   // Form states
   const [name, setName] = useState("")
+  const [customSlug, setCustomSlug] = useState("")
   const [description, setDescription] = useState("")
   const [categoryId, setCategoryId] = useState("")
   const [tagsInput, setTagsInput] = useState("")
@@ -116,6 +118,7 @@ export default function EditFramePage() {
         if (res.ok && data.success && data.frame) {
           const frame = data.frame
           setName(frame.name || "")
+          setCustomSlug(frame.slug || "")
           setDescription(frame.description || "")
           setCategoryId(frame.category_id || "")
           setTagsInput(Array.isArray(frame.tags) ? frame.tags.join(", ") : "")
@@ -255,6 +258,7 @@ export default function EditFramePage() {
       const payload: Record<string, any> = {
         id: frameId,
         name: name.trim(),
+        slug: customSlug ? slugify(customSlug) : null,
         description: description.trim() || null,
         categoryId,
         tags,
@@ -366,6 +370,29 @@ export default function EditFramePage() {
                   className="border-input bg-transparent text-foreground placeholder:text-muted-foreground"
                   required
                 />
+              </div>
+
+              {/* Custom Short Link / Slug */}
+              <div className="space-y-2">
+                <Label htmlFor="slug" className="text-foreground flex items-center justify-between">
+                  <span>Lien personnalisé (URL courte)</span>
+                  <span className="text-xs text-muted-foreground font-normal">Optionnel</span>
+                </Label>
+                <div className="flex items-center rounded-md border border-input bg-transparent overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+                  <span className="px-3 py-2 text-xs font-mono text-muted-foreground bg-muted/40 border-r border-input select-none shrink-0">
+                    /f/
+                  </span>
+                  <Input
+                    id="slug"
+                    placeholder="excellence-summit"
+                    value={customSlug}
+                    onChange={(e) => setCustomSlug(slugify(e.target.value))}
+                    className="border-0 focus-visible:ring-0 rounded-none bg-transparent text-foreground placeholder:text-muted-foreground text-sm font-mono h-10"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Lien direct à partager : <span className="font-mono text-primary font-medium">{typeof window !== "undefined" ? window.location.origin : ""}/f/{customSlug || frameId}</span>
+                </p>
               </div>
 
               {/* Description */}

@@ -49,6 +49,7 @@ export type FileFormat = "png" | "jpg" | "svg" | "webp"
 export interface Frame {
   id: string
   name: string
+  slug?: string | null
   description: string | null
   image_url: string
   thumbnail_url: string | null

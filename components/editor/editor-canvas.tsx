@@ -933,8 +933,9 @@ export function EditorCanvas() {
   const activeFrameId = getActiveFrameId()
   const resolvedFrame = activeFrameDetails || frames.find((f) => f.id === activeFrameId) || null
 
-  const frameShareUrl = activeFrameId && typeof window !== "undefined"
-    ? `${window.location.origin}/editor?frame=${activeFrameId}`
+  const frameShareKey = resolvedFrame?.slug || activeFrameId
+  const frameShareUrl = frameShareKey && typeof window !== "undefined"
+    ? `${window.location.origin}/f/${frameShareKey}`
     : null
   const creationShareUrl = shareId && typeof window !== "undefined"
     ? `${window.location.origin}/share/${shareId}${activeFrameId ? `?frame=${activeFrameId}` : ""}`
