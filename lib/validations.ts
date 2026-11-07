@@ -71,6 +71,27 @@ export const createFrameSchema = z.object({
   isActive: z.boolean().optional().default(true),
 })
 
+export const updateFrameSchema = z.object({
+  id: z.string().uuid("ID du cadre invalide"),
+  name: z
+    .string()
+    .min(1, "Le nom du cadre est requis")
+    .max(200, "Le nom est trop long")
+    .optional(),
+  description: z
+    .string()
+    .max(2000, "La description est trop longue")
+    .nullable()
+    .optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  base64Image: z
+    .string()
+    .optional(),
+  isPublic: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+})
+
 // ============================================
 // Project Schemas
 // ============================================
@@ -214,4 +235,3 @@ export const contactSchema = z.object({
     .min(10, "Le message doit contenir au moins 10 caractères")
     .max(5000, "Le message est trop long"),
 })
-

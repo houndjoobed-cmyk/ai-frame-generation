@@ -5,14 +5,13 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, MoreVertical, Heart, Download, Trash2, Eye, EyeOff, Layers, Share2, Check } from "lucide-react"
+import { Plus, MoreVertical, Heart, Download, Trash2, Eye, EyeOff, Layers, Share2, Check, Pencil } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
@@ -39,8 +38,6 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
   const [frames, setFrames] = useState<FrameItem[]>(initialFrames)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  
-  const supabase = createClient()
 
   const handleCopyShareLink = async (frameId: string) => {
     try {
@@ -59,18 +56,20 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
 
     setIsDeleting(frameId)
     try {
-      const { error } = await supabase
-        .from("frames")
-        .delete()
-        .eq("id", frameId)
+      const res = await fetch(`/api/frames?id=${encodeURIComponent(frameId)}`, {
+        method: "DELETE"
+      })
+      const data = await res.json()
 
-      if (error) throw error
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Impossible de supprimer le cadre.")
+      }
 
       setFrames((prev) => prev.filter((f) => f.id !== frameId))
       toast.success("Cadre supprimé avec succès.")
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting frame:", err)
-      toast.error("Impossible de supprimer le cadre.")
+      toast.error(err.message || "Impossible de supprimer le cadre.")
     } finally {
       setIsDeleting(null)
     }
@@ -127,16 +126,22 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                 </div>
 
                 {/* Hover overlay actions */}
-                <div className="absolute inset-0 bg-black/50 group-hover:opacity-100 opacity-0 transition-opacity flex items-center justify-center gap-2">
+                <div className="absolute inset-0 bg-black/60 group-hover:opacity-100 opacity-0 transition-opacity flex items-center justify-center gap-2 p-2 flex-wrap">
+                  <Link href={`/dashboard/frames/${frame.id}/edit`}>
+                    <Button size="sm" variant="secondary" className="gap-1 shadow-sm">
+                      <Pencil className="w-3.5 h-3.5" />
+                      Modifier
+                    </Button>
+                  </Link>
                   <Link href={`/editor?frame=${frame.id}`}>
-                    <Button size="sm" className="gap-1">
+                    <Button size="sm" className="gap-1 shadow-sm">
                       Utiliser
                     </Button>
                   </Link>
                   <Button
                     size="sm"
-                    variant="secondary"
-                    className="gap-1.5"
+                    variant="outline"
+                    className="gap-1.5 bg-background/80 hover:bg-background text-foreground shadow-sm"
                     onClick={() => handleCopyShareLink(frame.id)}
                   >
                     {copiedId === frame.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -156,18 +161,25 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/editor?frame=${frame.id}`}>
+                      <Link href={`/dashboard/frames/${frame.id}/edit`} className="cursor-pointer">
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Modifier ce cadre
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/editor?frame=${frame.id}`} className="cursor-pointer">
                         Utiliser dans l&apos;éditeur
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleCopyShareLink(frame.id)}>
+                    <DropdownMenuItem onClick={() => handleCopyShareLink(frame.id)} className="cursor-pointer">
                       Copier le lien de partage
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleDeleteFrame(frame.id, frame.name)}
-                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                      className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                       disabled={isDeleting === frame.id}
                     >
+                      <Trash2 className="w-4 h-4 mr-2" />
                       Supprimer
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -194,15 +206,27 @@ export function FramesContent({ frames: initialFrames }: FramesContentProps) {
                       {frame.download_count || 0}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs gap-1"
-                    onClick={() => handleCopyShareLink(frame.id)}
-                  >
-                    {copiedId === frame.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-                    {copiedId === frame.id ? "Lien copié" : "Partager"}
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Link href={`/dashboard/frames/${frame.id}/edit`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs gap-1 hover:text-foreground"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        Modifier
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs gap-1"
+                      onClick={() => handleCopyShareLink(frame.id)}
+                    >
+                      {copiedId === frame.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                      {copiedId === frame.id ? "Copié" : "Partager"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
