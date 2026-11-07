@@ -9,10 +9,48 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Upload, Loader2, Image as ImageIcon, AlertCircle } from "lucide-react"
+import { ArrowLeft, Upload, Loader2, AlertCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import Link from "next/link"
+
+function optimizePngToSafePayload(img: HTMLImageElement, initialMaxDim = 2048): string {
+  let maxDim = initialMaxDim
+  let result = ""
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let width = img.naturalWidth || img.width
+    let height = img.naturalHeight || img.height
+
+    if (width > maxDim || height > maxDim) {
+      if (width >= height) {
+        height = Math.round((height * maxDim) / width)
+        width = maxDim
+      } else {
+        width = Math.round((width * maxDim) / height)
+        height = maxDim
+      }
+    }
+
+    const canvas = document.createElement("canvas")
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext("2d")
+    if (!ctx) break
+
+    ctx.clearRect(0, 0, width, height)
+    ctx.drawImage(img, 0, 0, width, height)
+    result = canvas.toDataURL("image/png")
+
+    // Keep payload well below Vercel's 4.5 MB request body limit (4 MB in base64 chars)
+    if (result.length < 4 * 1024 * 1024 || maxDim <= 1200) {
+      break
+    }
+    maxDim = Math.round(maxDim * 0.75)
+  }
+
+  return result
+}
 
 export default function CreateFramePage() {
   const router = useRouter()
@@ -26,6 +64,7 @@ export default function CreateFramePage() {
   const [tagsInput, setTagsInput] = useState("")
   const [isPublic, setIsPublic] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
   
   // File states
   const [file, setFile] = useState<File | null>(null)
@@ -64,8 +103,8 @@ export default function CreateFramePage() {
       return
     }
 
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      toast.error("Le fichier est trop lourd. Limite max : 10 Mo.")
+    if (selectedFile.size > 20 * 1024 * 1024) {
+      toast.error("Le fichier est trop lourd. Limite max : 20 Mo.")
       return
     }
 
@@ -74,13 +113,55 @@ export default function CreateFramePage() {
     // Create preview
     const url = URL.createObjectURL(selectedFile)
     setImagePreview(url)
+    setIsProcessingImage(true)
 
-    // Convert to base64
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setBase64Image(reader.result as string)
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+
+    img.onload = () => {
+      try {
+        const MAX_DIM = 2048
+        const width = img.naturalWidth || img.width
+        const height = img.naturalHeight || img.height
+
+        // If dimensions exceed 2048 or file is large (> 2.5 MB), optimize via canvas while preserving transparency
+        if (width > MAX_DIM || height > MAX_DIM || selectedFile.size > 2.5 * 1024 * 1024) {
+          const optimized = optimizePngToSafePayload(img, MAX_DIM)
+          if (optimized) {
+            setBase64Image(optimized)
+            setIsProcessingImage(false)
+            return
+          }
+        }
+
+        // If already compact, read as-is
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setBase64Image(reader.result as string)
+          setIsProcessingImage(false)
+        }
+        reader.readAsDataURL(selectedFile)
+      } catch (err) {
+        console.error("Error optimizing frame PNG:", err)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setBase64Image(reader.result as string)
+          setIsProcessingImage(false)
+        }
+        reader.readAsDataURL(selectedFile)
+      }
     }
-    reader.readAsDataURL(selectedFile)
+
+    img.onerror = () => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setBase64Image(reader.result as string)
+        setIsProcessingImage(false)
+      }
+      reader.readAsDataURL(selectedFile)
+    }
+
+    img.src = url
   }
 
   const handleDrag = (e: React.DragEvent) => {
@@ -114,6 +195,11 @@ export default function CreateFramePage() {
 
     if (!name.trim()) {
       toast.error("Le titre du frame est requis.")
+      return
+    }
+
+    if (isProcessingImage) {
+      toast.info("Optimisation de l'image en cours, veuillez patienter un instant...")
       return
     }
 
@@ -152,10 +238,21 @@ export default function CreateFramePage() {
         }),
       })
 
-      const data = await res.json()
+      // Robust response parsing: handles 413, HTML error pages, and JSON safely
+      let data: any
+      const contentType = res.headers.get("content-type")
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json()
+      } else {
+        const text = await res.text()
+        if (res.status === 413 || text.includes("Request Entity Too Large") || text.includes("FUNCTION_PAYLOAD_TOO_LARGE")) {
+          throw new Error("L'image est trop volumineuse pour être envoyée (dépasse la limite de 4.5 Mo de Vercel).")
+        }
+        throw new Error(text || `Erreur serveur HTTP ${res.status}`)
+      }
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Une erreur est survenue.")
+        throw new Error(data.error || "Une erreur est survenue lors de la création du cadre.")
       }
 
       toast.success(
@@ -297,6 +394,12 @@ export default function CreateFramePage() {
                       alt="Cadre importé"
                       className="max-h-full max-w-full object-contain"
                     />
+                    {isProcessingImage && (
+                      <div className="absolute inset-0 bg-background/80 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-10">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        <span className="text-xs text-muted-foreground font-medium">Optimisation du cadre en cours...</span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Button size="sm" variant="secondary" type="button">
                         Remplacer l'image
@@ -310,7 +413,7 @@ export default function CreateFramePage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">Glissez-déposez un fichier ici ou cliquez</p>
-                      <p className="text-xs text-muted-foreground mt-1">Format PNG uniquement (Transparent) • Max 10 Mo</p>
+                      <p className="text-xs text-muted-foreground mt-1">Format PNG uniquement (Transparent) • Max 20 Mo</p>
                     </div>
                   </div>
                 )}
@@ -344,17 +447,17 @@ export default function CreateFramePage() {
             <Button
               type="submit"
               className="w-full gap-2 text-white bg-primary hover:bg-primary/90"
-              disabled={isSaving}
+              disabled={isSaving || isProcessingImage}
             >
-              {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Créer le frame
+              {(isSaving || isProcessingImage) && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isProcessingImage ? "Optimisation de l'image..." : "Créer le frame"}
             </Button>
             <Button
               type="button"
               variant="outline"
               className="w-full text-foreground border-input bg-transparent hover:bg-muted"
               onClick={(e) => handleFormSubmit(e, false)}
-              disabled={isSaving}
+              disabled={isSaving || isProcessingImage}
             >
               Enregistrer comme brouillon
             </Button>
